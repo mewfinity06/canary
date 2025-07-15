@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TOKEN_H_
+#define TOKEN_H_
 
 enum TK {
     TK_INVALID,
@@ -43,3 +44,4 @@ struct Token {
     t->tk = TK_INVALID
 
 char *TokenFmt(Token t);
+#endif // TOKEN_H_
