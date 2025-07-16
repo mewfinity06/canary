@@ -9,7 +9,7 @@
 void CanaryInfo (FILE* stream, char *fmt, ...) {
     va_list vl;
     va_start(vl, fmt);
-    fprintf(stream, "[INFO] ");
+    fprintf(stream, "["INFO"INFO"RESET"] ");
     vfprintf(stream, fmt, vl);
     fprintf(stream, "\n");
 }
@@ -17,7 +17,7 @@ void CanaryInfo (FILE* stream, char *fmt, ...) {
 void CanaryWarning (FILE* stream, char *fmt, ...) {
     va_list vl;
     va_start(vl, fmt);
-    fprintf(stream,"[WARNING] ");
+    fprintf(stream,"["WARNING"WARNING"RESET"] ");
     vfprintf(stream,fmt, vl);
     fprintf(stream,"\n");
 }
@@ -25,7 +25,7 @@ void CanaryWarning (FILE* stream, char *fmt, ...) {
 void CanaryError (FILE* stream, char *fmt, ...) {
     va_list vl;
     va_start(vl, fmt);
-    fprintf(stream, "[ERROR] ");
+    fprintf(stream, "["ERROR"ERROR"RESET"] ");
     vfprintf(stream, fmt, vl);
     fprintf(stream, "\n");
 }
@@ -33,7 +33,7 @@ void CanaryError (FILE* stream, char *fmt, ...) {
 void CanaryContext (FILE* stream, char *fmt, ...) {
     va_list vl;
     va_start(vl, fmt);
-    fprintf(stream, "[CONTEXT] ");
+    fprintf(stream, "["CONTEXT"CONTEXT"RESET"] ");
     vfprintf(stream, fmt, vl);
     fprintf(stream, "\n");
 }
