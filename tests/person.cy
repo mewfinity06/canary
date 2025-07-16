@@ -1,4 +1,4 @@
-const prinf := std.c.printf;
+const printf := std.c.printf;
 
 const Person : struct = {
     name      : str,
