@@ -24,6 +24,7 @@ char *Keywords[] = {
     "override",
     "fn",
     "Self", "self",
+    "defer",
     "if", "else",
     "switch",
     "for", 
