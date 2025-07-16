@@ -50,9 +50,18 @@ Lexer LexerNew(char *source_name, char *source, size_t source_len) {
 }
 
 bool LexerNext(Lexer *lexer, Token *token) {
-    if (!LexerSkipWhitespace(lexer)) return false;
+    if (!skipWhitespace(lexer)) return false;
     char cur = lexer->source[lexer->idx];
+
+    if (cur == '/' && LexerPeek(lexer, 1) == '/') {
+        if (!readComment(lexer)) {
+            return false;
+        }
+        return LexerNext(lexer, token);
+    }
+
     switch (cur) {
+    case '_':
     case 'a'...'z':
     case 'A'...'Z': if (!readIdent(lexer, token))  return false; break;
     case '0'...'9': if (!readNumber(lexer, token)) return false; break;
@@ -61,8 +70,16 @@ bool LexerNext(Lexer *lexer, Token *token) {
         case '=': if (!makeToken(lexer, token, TK_ASSIGN, 2)) return false; break;
         default:  if (!makeToken(lexer, token, TK_COLON, 1)) return false; break;
     } break;
+    case '-': switch (LexerPeek(lexer, 1)) {
+        case '>': if (!makeToken(lexer, token, TK_RIGHT_ARROW, 2)) return false; break;
+        default:  if (!makeToken(lexer, token, TK_DASH, 1)) return false; break;
+    } break;
+    case '/': if (!makeToken(lexer, token, TK_SLASH, 1)) return false; break;
     case '=': if (!makeToken(lexer, token, TK_EQUAL, 1)) return false; break;
     case '.': if (!makeToken(lexer, token, TK_DOT, 1)) return false; break;
+    case ',': if (!makeToken(lexer, token, TK_COMMA, 1)) return false; break;
+    case '+': if (!makeToken(lexer, token, TK_PLUS, 1)) return false; break;
+    case '*': if (!makeToken(lexer, token, TK_STAR, 1)) return false; break;
     case ';': if (!makeToken(lexer, token, TK_SEMI_COLON, 1)) return false; break;
     case '(': if (!makeToken(lexer, token, TK_O_PAREN, 1)) return false; break;
     case ')': if (!makeToken(lexer, token, TK_C_PAREN, 1)) return false; break;
@@ -70,6 +87,8 @@ bool LexerNext(Lexer *lexer, Token *token) {
     case '}': if (!makeToken(lexer, token, TK_C_BRACK, 1)) return false; break;
     case '[': if (!makeToken(lexer, token, TK_O_SQUARE, 1)) return false; break;
     case ']': if (!makeToken(lexer, token, TK_C_SQUARE, 1)) return false; break;
+    case '?': if (!makeToken(lexer, token, TK_QUESION, 1)) return false; break;
+    case '|': if (!makeToken(lexer, token, TK_PIPE, 1)) return false; break;
     case 0: token->tk = TK_EOF; break;
     default:
         LexerErrorContext(lexer, "Unknown char `%c`", cur);
@@ -78,7 +97,7 @@ bool LexerNext(Lexer *lexer, Token *token) {
     return true;
 }
 
-bool LexerSkipWhitespace (Lexer *lexer) {
+bool skipWhitespace (Lexer *lexer) {
     while (lexer->idx < lexer->source_len && isspace(lexer->source[lexer->idx])) lexer->idx++;
     return true;
 }
@@ -101,7 +120,7 @@ char LexerPeek (Lexer* lexer, size_t offset) {
 
 bool readIdent(Lexer *lexer, Token *token) {
     size_t start = lexer->idx;
-    while (lexer->idx < lexer->source_len && isalnum(lexer->source[lexer->idx])) {
+    while (lexer->idx < lexer->source_len && (isalnum(lexer->source[lexer->idx]) || lexer->source[lexer->idx] == '_')) {
         lexer->idx++;
     }
     size_t size = lexer->idx - start;
@@ -123,7 +142,7 @@ bool readIdent(Lexer *lexer, Token *token) {
 
 bool readNumber(Lexer *lexer, Token *token) {
     size_t start = lexer->idx;
-    while (lexer->idx < lexer->source_len && isdigit(lexer->source[lexer->idx])) {
+    while (lexer->idx < lexer->source_len && (isdigit(lexer->source[lexer->idx]) || lexer->source[lexer->idx] == '_')) {
         lexer->idx++;
     }
     // Basic support for floating point numbers
@@ -147,12 +166,11 @@ bool readNumber(Lexer *lexer, Token *token) {
 }
 
 bool readString(Lexer *lexer, Token *token) {
-    lexer->idx++; // Consume the opening quote
+    lexer->idx++;
     size_t start = lexer->idx;
     while (lexer->idx < lexer->source_len && lexer->source[lexer->idx] != '"' && lexer->source[lexer->idx] != '\0') {
-        // Basic handling for escaped quotes within the string (e.g., ignoring them for now)
         if (lexer->source[lexer->idx] == '\\' && lexer->idx + 1 < lexer->source_len) {
-            lexer->idx++; // Skip escaped character
+            lexer->idx++;
         }
         lexer->idx++;
     }
@@ -171,9 +189,23 @@ bool readString(Lexer *lexer, Token *token) {
     if (token->word == NULL) return false;
     strncpy(token->word, lexer->source + start, size);
     token->word[size] = '\0';
-    lexer->idx++; // Consume the closing quote
+    lexer->idx++;
     token->tk = TK_STRING;
     return true;
+}
+
+bool readComment(Lexer *lexer) {
+    if (LexerPeek(lexer, 0) == '/' && LexerPeek(lexer, 1) == '/') {
+        lexer->idx += 2;
+        while (lexer->idx < lexer->source_len && lexer->source[lexer->idx] != '\n') {
+            lexer->idx++;
+        }
+        if (lexer->idx < lexer->source_len && lexer->source[lexer->idx] == '\n') {
+            lexer->idx++;
+        }
+        return true;
+    }
+    return false;
 }
 
 bool makeToken (Lexer *lexer, Token* token, enum TK kind, size_t len) {
