@@ -25,6 +25,13 @@ char *TKName(enum TK tk) {
     case TK_NUMBER: return "TK_NUMBER";
     case TK_KEYWORD: return "TK_KEYWORD";
     case TK_STRING: return "TK_STRING";
+    case TK_RIGHT_ARROW: return "TK_RIGHT_ARROW";
+    case TK_FAT_ARROW: return "TK_FAT_ARROW";
+    case TK_DASH: return "TK_DASH";
+    case TK_STAR: return "TK_STAR";
+    case TK_SLASH: return "TK_SLASH";
+    case TK_COMMENT: return "TK_COMMENT";
+    case TK_PIPE: return "TK_PIPE";
     }
 }
 

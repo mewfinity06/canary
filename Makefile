@@ -1,5 +1,8 @@
 CC=zig cc
-CFLAGS=
+CFLAGS= \
+	-Wall \
+	-Werror \
+	-Wextra
 OUTPUT=./build/canary
 
 SOURCE= \
@@ -12,7 +15,7 @@ VENDOR= \
 	./vendor/flag.c
 
 build:
-	$(CC) -o $(OUTPUT) $(SOURCE) $(VENDOR)
+	$(CC) -o $(OUTPUT) $(SOURCE) $(VENDOR) $(CFLAGS)
 
 all: build clean
 

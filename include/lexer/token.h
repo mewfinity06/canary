@@ -8,12 +8,18 @@ enum TK {
     // 2 char tokens
     TK_ASSIGN, // :=
     TK_PLUS_EQL, // +=
+    TK_RIGHT_ARROW, // ->
+    TK_FAT_ARROW, // =>
 
     // 1 char tokens
     TK_COLON, // :
     TK_SEMI_COLON, // ;
     TK_EQUAL, // =
     TK_PLUS, // +
+    TK_DASH, // -
+    TK_STAR, // *
+    TK_SLASH, // /
+    TK_PIPE,
     TK_DOT, // .
     TK_COMMA, // ,
     TK_QUESION, // ?
@@ -29,6 +35,7 @@ enum TK {
     TK_NUMBER,
     TK_KEYWORD,
     TK_STRING,
+    TK_COMMENT,
 };
 
 char *TKName(enum TK tk);
