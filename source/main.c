@@ -58,7 +58,7 @@ int main (int argc, char **argv) {
     char buffer[file_size+1];
 
     size_t bytes_read = fread(buffer, 1, file_size, fp);
-    if (bytes_read != file_size) {
+    if ((long)bytes_read != file_size) {
         CanaryError(stderr, "Error reading file: expected %ld bytes, read %zu\n", file_size, bytes_read);
         fclose(fp);
         return 1;
