@@ -26,6 +26,7 @@ enum TK {
 
     // Literals
     TK_IDENT,
+    TK_NUMBER,
     TK_KEYWORD,
     TK_STRING,
 };
@@ -40,8 +41,9 @@ struct Token {
 
 #define NewToken(t) \
     Token *(t) = (Token *) malloc(sizeof(Token)); \
-    t->word = "INVALID"; \
+    t->word = NULL; \
     t->tk = TK_INVALID
 
 char *TokenFmt(Token t);
+void  TokenFree(Token *t);
 #endif // TOKEN_H_
