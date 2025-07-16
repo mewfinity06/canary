@@ -8,6 +8,11 @@ enum TK {
     // 2 char tokens
     TK_ASSIGN, // :=
     TK_PLUS_EQL, // +=
+    TK_MINUS_EQL, // -=
+    TK_STAR_EQL, // *=
+    TK_SLASH_EQL, // /=
+    TK_LESS_EQL, // <=
+    TK_GREATER_EQL, // >=
     TK_RIGHT_ARROW, // ->
     TK_FAT_ARROW, // =>
 
@@ -22,6 +27,8 @@ enum TK {
     TK_PIPE,
     TK_DOT, // .
     TK_COMMA, // ,
+    TK_LESS, // <
+    TK_GREATER, // >
     TK_QUESION, // ?
     TK_O_BRACK, // {
     TK_C_BRACK, // }

@@ -32,6 +32,13 @@ char *TKName(enum TK tk) {
     case TK_SLASH: return "TK_SLASH";
     case TK_COMMENT: return "TK_COMMENT";
     case TK_PIPE: return "TK_PIPE";
+    case TK_MINUS_EQL: return "TK_MINUS_EQL";
+    case TK_STAR_EQL: return "TK_STAR_EQL";
+    case TK_SLASH_EQL: return "TK_SLASH_EQL";
+    case TK_LESS_EQL: return "TK_LESS_EQL";
+    case TK_GREATER_EQL: return "TK_GREATER_EQL";
+    case TK_LESS: return "TK_LESS";
+    case TK_GREATER: return "TK_GREATER";
     }
 }
 

@@ -64,33 +64,48 @@ bool LexerNext(Lexer *lexer, Token *token) {
     switch (cur) {
     case '_':
     case 'a'...'z':
-    case 'A'...'Z': if (!readIdent(lexer, token))  return false; break;
-    case '0'...'9': if (!readNumber(lexer, token)) return false; break;
-    case '"':       if (!readString(lexer, token)) return false; break;
+    case 'A'...'Z': return readIdent(lexer, token);
+    case '0'...'9': return readNumber(lexer, token);
+    case '"':       return readString(lexer, token);
     case ':': switch (LexerPeek(lexer, 1)) {
-        case '=': if (!makeToken(lexer, token, TK_ASSIGN, 2)) return false; break;
-        default:  if (!makeToken(lexer, token, TK_COLON, 1)) return false; break;
+        case '=': return makeToken(lexer, token, TK_ASSIGN, 2);
+        default:  return makeToken(lexer, token, TK_COLON, 1);
     } break;
     case '-': switch (LexerPeek(lexer, 1)) {
-        case '>': if (!makeToken(lexer, token, TK_RIGHT_ARROW, 2)) return false; break;
-        default:  if (!makeToken(lexer, token, TK_DASH, 1)) return false; break;
+        case '>': return makeToken(lexer, token, TK_RIGHT_ARROW, 2);
+        case '=': return makeToken(lexer, token, TK_MINUS_EQL, 2);
+        default:  return makeToken(lexer, token, TK_DASH, 1);
     } break;
-    case '/': if (!makeToken(lexer, token, TK_SLASH, 1)) return false; break;
-    case '=': if (!makeToken(lexer, token, TK_EQUAL, 1)) return false; break;
-    case '.': if (!makeToken(lexer, token, TK_DOT, 1)) return false; break;
-    case ',': if (!makeToken(lexer, token, TK_COMMA, 1)) return false; break;
-    case '+': if (!makeToken(lexer, token, TK_PLUS, 1)) return false; break;
-    case '*': if (!makeToken(lexer, token, TK_STAR, 1)) return false; break;
-    case ';': if (!makeToken(lexer, token, TK_SEMI_COLON, 1)) return false; break;
-    case '(': if (!makeToken(lexer, token, TK_O_PAREN, 1)) return false; break;
-    case ')': if (!makeToken(lexer, token, TK_C_PAREN, 1)) return false; break;
-    case '{': if (!makeToken(lexer, token, TK_O_BRACK, 1)) return false; break;
-    case '}': if (!makeToken(lexer, token, TK_C_BRACK, 1)) return false; break;
-    case '[': if (!makeToken(lexer, token, TK_O_SQUARE, 1)) return false; break;
-    case ']': if (!makeToken(lexer, token, TK_C_SQUARE, 1)) return false; break;
-    case '?': if (!makeToken(lexer, token, TK_QUESION, 1)) return false; break;
-    case '|': if (!makeToken(lexer, token, TK_PIPE, 1)) return false; break;
-    case 0: token->tk = TK_EOF; break;
+    case '+': switch (LexerPeek(lexer, 1)) {
+        case '=': return makeToken(lexer, token, TK_PLUS_EQL, 2);
+        default:  return makeToken(lexer, token, TK_PLUS, 1);
+    } break;
+    case '/': switch (LexerPeek(lexer, 1)) {
+        case '=': return makeToken(lexer, token, TK_SLASH_EQL, 2);
+        default:  return makeToken(lexer, token, TK_SLASH, 1);
+    } break;
+    case '<': switch (LexerPeek(lexer, 1)) {
+        case '=': return makeToken(lexer, token, TK_LESS_EQL, 2);
+        default: return makeToken(lexer, token, TK_LESS, 1);
+    } break;
+    case '>': switch (LexerPeek(lexer, 1)) {
+        case '=': return makeToken(lexer, token, TK_GREATER_EQL, 2);
+        default: return makeToken(lexer, token, TK_GREATER, 1);
+    } break;
+    case '=': return makeToken(lexer, token, TK_EQUAL, 1);
+    case '.': return makeToken(lexer, token, TK_DOT, 1);
+    case ',': return makeToken(lexer, token, TK_COMMA, 1);
+    case '*': return makeToken(lexer, token, TK_STAR, 1);
+    case ';': return makeToken(lexer, token, TK_SEMI_COLON, 1);
+    case '(': return makeToken(lexer, token, TK_O_PAREN, 1);
+    case ')': return makeToken(lexer, token, TK_C_PAREN, 1);
+    case '{': return makeToken(lexer, token, TK_O_BRACK, 1);
+    case '}': return makeToken(lexer, token, TK_C_BRACK, 1);
+    case '[': return makeToken(lexer, token, TK_O_SQUARE, 1);
+    case ']': return makeToken(lexer, token, TK_C_SQUARE, 1);
+    case '?': return makeToken(lexer, token, TK_QUESION, 1);
+    case '|': return makeToken(lexer, token, TK_PIPE, 1);
+    case 0: token->tk = TK_EOF; return true;
     default:
         LexerErrorContext(lexer, "Unknown char `%c`", cur);
         return false;
