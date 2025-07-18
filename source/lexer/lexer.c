@@ -107,6 +107,10 @@ bool LexerNext(Lexer *lexer, Token *token) {
         } break;
         default: return makeToken(lexer, token, TK_DOT, 1);
     } break;
+    case '|': switch (LexerPeek(lexer, 1)) {
+        case '>': return makeToken(lexer, token, TK_PIPE, 2);
+        default: return makeToken(lexer, token, TK_VERT_BAR, 1);
+    }
     case '#': return makeToken(lexer, token, TK_POUND, 1);
     case '=': return makeToken(lexer, token, TK_EQUAL, 1);
     case ',': return makeToken(lexer, token, TK_COMMA, 1);
@@ -120,7 +124,6 @@ bool LexerNext(Lexer *lexer, Token *token) {
     case ']': return makeToken(lexer, token, TK_C_SQUARE, 1);
     case '?': return makeToken(lexer, token, TK_QUESION, 1);
     case '!': return makeToken(lexer, token, TK_BANG, 1);
-    case '|': return makeToken(lexer, token, TK_PIPE, 1);
     case 0: token->tk = TK_EOF; return true;
     default:
         LexerErrorContext(lexer, "Unknown char `%c`", cur);

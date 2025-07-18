@@ -18,6 +18,8 @@ enum TK {
     TK_GREATER_EQL, // >=
     TK_RIGHT_ARROW, // ->
     TK_FAT_ARROW, // =>
+    TK_PIPE, // |>
+
 
     // 1 char tokens
     TK_COLON, // :
@@ -27,7 +29,7 @@ enum TK {
     TK_DASH, // -
     TK_STAR, // *
     TK_SLASH, // /
-    TK_PIPE,
+    TK_VERT_BAR, // |
     TK_DOT, // .
     TK_COMMA, // ,
     TK_LESS, // <
