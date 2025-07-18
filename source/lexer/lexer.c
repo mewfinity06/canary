@@ -12,11 +12,12 @@
 
 #define KEYWORD_LEN (sizeof(Keywords)/sizeof(Keywords[0]))
 char *Keywords[] = {
-    "const", 
+    "const",
     "val",
     "mut",
     "struct",
     "enum",
+    "macro",
     "impl",
     "interface",
     "priv",
@@ -27,8 +28,8 @@ char *Keywords[] = {
     "defer",
     "if", "else",
     "switch",
-    "for", 
-    "break", 
+    "for",
+    "break",
     "continue",
     "unreachable"
 };
@@ -48,6 +49,10 @@ Lexer LexerNew(char *source_name, char *source, size_t source_len) {
     lexer.idx = 0;
     lexer.error_context = NULL;
     return lexer;
+}
+
+void LexerFree(Lexer *lexer) {
+    if (lexer->error_context != NULL) free(lexer->error_context);
 }
 
 bool LexerNext(Lexer *lexer, Token *token) {
@@ -86,14 +91,24 @@ bool LexerNext(Lexer *lexer, Token *token) {
     } break;
     case '<': switch (LexerPeek(lexer, 1)) {
         case '=': return makeToken(lexer, token, TK_LESS_EQL, 2);
-        default: return makeToken(lexer, token, TK_LESS, 1);
+        default:  return makeToken(lexer, token, TK_LESS, 1);
     } break;
     case '>': switch (LexerPeek(lexer, 1)) {
         case '=': return makeToken(lexer, token, TK_GREATER_EQL, 2);
-        default: return makeToken(lexer, token, TK_GREATER, 1);
+        default:  return makeToken(lexer, token, TK_GREATER, 1);
     } break;
+    case '.': switch (LexerPeek(lexer, 1)) {
+        case '.': switch (LexerPeek(lexer, 2)) {
+            case '.': return makeToken(lexer, token, TK_3_DOT, 3);
+            default: {
+                LexerErrorContext(lexer, "Malformed token. Expected 3 dots, found only 2");
+                return false;
+            }
+        } break;
+        default: return makeToken(lexer, token, TK_DOT, 1);
+    } break;
+    case '#': return makeToken(lexer, token, TK_POUND, 1);
     case '=': return makeToken(lexer, token, TK_EQUAL, 1);
-    case '.': return makeToken(lexer, token, TK_DOT, 1);
     case ',': return makeToken(lexer, token, TK_COMMA, 1);
     case '*': return makeToken(lexer, token, TK_STAR, 1);
     case ';': return makeToken(lexer, token, TK_SEMI_COLON, 1);
@@ -104,6 +119,7 @@ bool LexerNext(Lexer *lexer, Token *token) {
     case '[': return makeToken(lexer, token, TK_O_SQUARE, 1);
     case ']': return makeToken(lexer, token, TK_C_SQUARE, 1);
     case '?': return makeToken(lexer, token, TK_QUESION, 1);
+    case '!': return makeToken(lexer, token, TK_BANG, 1);
     case '|': return makeToken(lexer, token, TK_PIPE, 1);
     case 0: token->tk = TK_EOF; return true;
     default:

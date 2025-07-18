@@ -39,6 +39,9 @@ char *TKName(enum TK tk) {
     case TK_GREATER_EQL: return "TK_GREATER_EQL";
     case TK_LESS: return "TK_LESS";
     case TK_GREATER: return "TK_GREATER";
+    case TK_3_DOT: return "TK_3_DOT";
+    case TK_POUND: return "TK_POUND";
+    case TK_BANG: return "TK_BANG";
     }
 }
 

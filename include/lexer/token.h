@@ -5,6 +5,9 @@ enum TK {
     TK_INVALID,
     TK_EOF,
 
+    // 3 char tokens
+    TK_3_DOT, // ...
+
     // 2 char tokens
     TK_ASSIGN, // :=
     TK_PLUS_EQL, // +=
@@ -30,6 +33,8 @@ enum TK {
     TK_LESS, // <
     TK_GREATER, // >
     TK_QUESION, // ?
+    TK_BANG, // !
+    TK_POUND, // #
     TK_O_BRACK, // {
     TK_C_BRACK, // }
     TK_O_PAREN, // (

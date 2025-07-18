@@ -17,6 +17,7 @@ struct Lexer {
 };
 
 Lexer LexerNew            (char *source_name, char *source, size_t sourc);
+void  LexerFree           (Lexer *lexer);
 bool  LexerNext           (Lexer *l, Token *t);
 bool  LexerExpect         (Lexer *l, enum TK tk);
 void  LexerErrorContext   (Lexer *l, char *fmt, ...);
