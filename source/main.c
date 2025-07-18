@@ -75,13 +75,16 @@ int main (int argc, char **argv) {
             }
             return 0;
         }
-        CanaryInfo(stdout, "Found %s", TokenFmt(*t));
+        char *format = TokenFmt(*t);
+        CanaryInfo(stdout, "Found %s", format);
+        free(format);
         if (t->tk == TK_EOF || t->tk == TK_INVALID) {
             TokenFree(t);
             break;
         }
         TokenFree(t);
     }
+    LexerFree(&l);
 
     // TODO: Parse tokens
 
