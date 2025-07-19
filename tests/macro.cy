@@ -4,8 +4,8 @@ const my_printf : macro = {
         std.c.printf(#fmt);
     };
     // Variadics are only allowed in macros
-    (fmt: str, args: ...) := {
-        std.c.printf(#fmt, #args);
+    (fmt: str, args: any*) := {
+        std.c.printf(#fmt, #[#args,]*);
     };
 };
 
