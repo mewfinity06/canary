@@ -8,6 +8,7 @@
 #include "../include/canary.h"
 #include "../include/lexer/lexer.h"
 #include "../include/lexer/token.h"
+#include "../include/parser/parser.h"
 
 // vendor header
 #define FLAG_IMPLEMENTATION
@@ -65,25 +66,21 @@ int main (int argc, char **argv) {
     }
     buffer[file_size] = '\0';
 
-    Lexer l = LexerNew(*file, buffer, file_size);
-    NewToken(t);
+    Lexer lexer = LexerNew(*file, buffer, file_size);
+    Parser parser = ParserNew(&lexer);
+
     while (true) {
-        if (!LexerNext(&l, t)) {
-            CanaryError(stderr, "Could not get token.");
-            if (l.error_context != NULL) {
-                CanaryContext(stderr, l.error_context);
+        void *node = ParserNext(&parser);
+        if (node == NULL) {
+            CanaryError(stderr, "Could not get node");
+            if (parser.error_context != NULL) {
+                CanaryContext(stderr, parser.error_context);
             }
-            return 0;
-        }
-        char *format = TokenFmt(*t);
-        CanaryInfo(stdout, "Found %s", format);
-        free(format);
-        if (t->tk == TK_EOF || t->tk == TK_INVALID) {
             break;
         }
-    }
-    TokenFree(t);
-    LexerFree(&l);
+    };
+    
+    ParserFree(&parser);
 
     // TODO: Parse tokens
 

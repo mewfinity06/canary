@@ -18,6 +18,16 @@ Parser ParserNew(Lexer *lexer) {
     return parser;
 }
 
+void *ParserNext(Parser *parser) {
+    ParserErrorContext(parser, "ParserNext not implemented");
+    return NULL;
+}
+
+void ParserFree(Parser *parser) {
+    if (parser->error_context != NULL) free(parser->error_context);
+    LexerFree(parser->lexer);
+}
+
 
 void ParserErrorContext(Parser *parser, char *fmt, ...) {
     va_list vl;
