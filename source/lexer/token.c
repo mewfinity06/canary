@@ -42,6 +42,7 @@ char *TKName(enum TK tk) {
     case TK_3_DOT: return "TK_3_DOT";
     case TK_POUND: return "TK_POUND";
     case TK_BANG: return "TK_BANG";
+    case TK_VERT_BAR: return "TK_VERT_BAR";
     }
 }
 
