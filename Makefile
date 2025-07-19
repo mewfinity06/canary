@@ -9,7 +9,8 @@ SOURCE= \
 	./source/main.c \
 	./source/canary.c \
 	./source/lexer/lexer.c \
-	./source/lexer/token.c
+	./source/lexer/token.c \
+	./source/parser/parser.c
 
 VENDOR= \
 	./vendor/flag.c

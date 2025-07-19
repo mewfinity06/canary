@@ -19,8 +19,11 @@ pub fn build(b: *std.Build) void {
             // source
             "./source/main.c",
             "./source/canary.c",
+            // Lexer
             "./source/lexer/lexer.c",
             "./source/lexer/token.c",
+            // Parser
+            "./source/parser/parser.c",
             // vendor
             "./vendor/flag.c",
         },
