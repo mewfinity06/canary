@@ -66,8 +66,8 @@ int main (int argc, char **argv) {
     buffer[file_size] = '\0';
 
     Lexer l = LexerNew(*file, buffer, file_size);
+    NewToken(t);
     while (true) {
-        NewToken(t);
         if (!LexerNext(&l, t)) {
             CanaryError(stderr, "Could not get token.");
             if (l.error_context != NULL) {
@@ -79,11 +79,10 @@ int main (int argc, char **argv) {
         CanaryInfo(stdout, "Found %s", format);
         free(format);
         if (t->tk == TK_EOF || t->tk == TK_INVALID) {
-            TokenFree(t);
             break;
         }
-        TokenFree(t);
     }
+    TokenFree(t);
     LexerFree(&l);
 
     // TODO: Parse tokens
