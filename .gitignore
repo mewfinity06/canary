@@ -1,4 +1,1 @@
-zig-out/
-.zig-cache/
-vgcore*
-build/
+/target
