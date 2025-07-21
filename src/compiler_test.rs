@@ -7,7 +7,7 @@ use std::{
 
 use crate::{
     info,
-    lexer::{Lexer, token::Token},
+    lexer::{Lexer, token::{TokenType, Token}},
 };
 
 #[derive(Deserialize, Debug)]
@@ -46,14 +46,13 @@ pub fn test_compiler() -> anyhow::Result<()> {
         let mut content = std::string::String::with_capacity(256);
         reader.read_to_string(&mut content)?;
 
-        let mut lexer = Lexer::new(test.file.clone(), &content).into_iter();
+        let lexer = Lexer::new(&content);
 
-        for e in test.expected {
-            let t = lexer
-                .next()
+        for (i, e) in test.expected.iter().enumerate() {
+            let t = lexer.clone().into_iter().nth(i)
                 .expect("There should always be a token present");
-            if e != t.into_str() {
-                bail!("");
+            if e != t.kind.clone().into_str() {
+                bail!("Token mismatch: expected {}, got {}", e, t.kind.into_str());
             }
         }
 
@@ -107,8 +106,6 @@ pub fn build_tests() -> anyhow::Result<()> {
             continue;
         }
 
-        info!("Entry: {}", path.display());
-
         if path.to_str().expect("this to_str should always pass") == "./tests/expected.json" {
             continue;
         }
@@ -119,25 +116,21 @@ pub fn build_tests() -> anyhow::Result<()> {
         reader.read_to_string(&mut content)?;
 
         let mut test = Test::empty();
-        test.file = path.to_str().expect("this to_str should always pass").to_string();
+        test.file = path
+            .to_str()
+            .expect("this to_str should always pass")
+            .to_string();
 
-        let mut lexer = Lexer::new(
-            path.to_str()
-                .expect("this to_str should always pass")
-                .to_string(),
-            &content,
-        );
+        let mut lexer = Lexer::new(&content);
 
-        loop {
-            let t = lexer
-                .next()
-                .expect("There should always be a token present");
-            if t == Token::EOF {
+        while let Ok(t) = lexer.next_token() {
+            if t.kind == TokenType::EOF {
                 break;
             }
-            test.expected.push(t.into_str().to_string());
+            test.expected.push(t.kind.into_str().to_string());
         }
 
+        info!("Test {} built", path.display());
         tests.tests.push(test);
     }
     serde_json::to_writer_pretty(&mut writer, &tests)?;
