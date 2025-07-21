@@ -1,7 +1,19 @@
 #![allow(dead_code)]
 
-#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub enum Token {
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord, Clone, Copy, Default)]
+pub struct Location {
+    pub line: usize,
+    pub col: usize,
+}
+
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord, Clone)]
+pub struct Token {
+    pub kind: TokenType,
+    pub loc: Location,
+}
+
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord, Clone)]
+pub enum TokenType {
     // 3 char tokens
     DotDotDot, // ...
 
@@ -59,6 +71,8 @@ pub enum Token {
     Else,
     Switch,
     For,
+    While,
+    Return,
     Break,
     Continue,
     Unreachable,
@@ -71,10 +85,12 @@ pub enum Token {
     EOF,
 }
 
-impl Token {
+impl TokenType {
     pub fn into_str(self) -> &'static str {
-        use Token::*;
+        use TokenType::*;
         match self {
+            Return => "Return",
+            While => "While",
             DotDotDot => "DotDotDot",
             Assign => "Assign",
             PlusEql => "PlusEql",
@@ -137,9 +153,11 @@ impl Token {
     }
 }
 
-impl From<&str> for Token {
+impl From<&str> for TokenType {
     fn from(s: &str) -> Self {
         match s {
+            "return" => Self::Return,
+            "while" => Self::While,
             "const" => Self::Const,
             "val" => Self::Val,
             "mut" => Self::Mut,

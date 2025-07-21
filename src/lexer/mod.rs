@@ -4,209 +4,197 @@ use std::str::Chars;
 pub mod token;
 
 use crate::error;
-use token::Token;
+use token::{Token, TokenType, Location};
 
+#[derive(Clone)]
 pub struct Lexer<'a> {
-    file_name: String,
     content: Peekable<Chars<'a>>,
+    line: usize,
+    col: usize,
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(file_name: String, content: &'a String) -> Self {
+    pub fn new(content: &'a String) -> Self {
         Self {
-            file_name: file_name,
             content: content.chars().peekable(),
+            line: 1,
+            col: 1,
         }
+    }
+
+    fn next_char(&mut self) -> Option<char> {
+        let next = self.content.next();
+        if let Some(c) = next {
+            if c == '\n' {
+                self.line += 1;
+                self.col = 1;
+            } else {
+                self.col += 1;
+            }
+        }
+        next
+    }
+    
+    fn peek(&mut self) -> Option<&char> {
+        self.content.peek()
     }
 
     pub fn next_token(&mut self) -> anyhow::Result<Token> {
         self.skip_whitespace_and_comments();
 
-        let c = match self.content.peek() {
+        let loc = Location { line: self.line, col: self.col };
+        let c = match self.peek() {
             Some(c) => *c,
-            None => return Ok(Token::EOF),
+            None => return Ok(Token { kind: TokenType::EOF, loc }),
         };
 
-        let token = match c {
+        let kind = match c {
             '.' => {
-                self.content.next();
-                if self.content.peek() == Some(&'.') {
-                    self.content.next();
-                    if self.content.peek() == Some(&'.') {
-                        self.content.next();
-                        Token::DotDotDot
+                self.next_char();
+                if self.peek() == Some(&'.') {
+                    self.next_char();
+                    if self.peek() == Some(&'.') {
+                        self.next_char();
+                        TokenType::DotDotDot
                     } else {
-                        Token::Dot
+                        TokenType::Dot
                     }
                 } else {
-                    Token::Dot
+                    TokenType::Dot
                 }
             }
             ':' => {
-                self.content.next();
-                if self.content.peek() == Some(&'=') {
-                    self.content.next();
-                    Token::Assign
+                self.next_char();
+                if self.peek() == Some(&'=') {
+                    self.next_char();
+                    TokenType::Assign
                 } else {
-                    Token::Colon
+                    TokenType::Colon
                 }
             }
             '+' => {
-                self.content.next();
-                if self.content.peek() == Some(&'=') {
-                    self.content.next();
-                    Token::PlusEql
+                self.next_char();
+                if self.peek() == Some(&'=') {
+                    self.next_char();
+                    TokenType::PlusEql
                 } else {
-                    Token::Plus
+                    TokenType::Plus
                 }
             }
             '-' => {
-                self.content.next();
-                if self.content.peek() == Some(&'=') {
-                    self.content.next();
-                    Token::MinusEql
-                } else if self.content.peek() == Some(&'>') {
-                    self.content.next();
-                    Token::RightArrow
+                self.next_char();
+                if self.peek() == Some(&'=') {
+                    self.next_char();
+                    TokenType::MinusEql
+                } else if self.peek() == Some(&'>') {
+                    self.next_char();
+                    TokenType::RightArrow
                 } else {
-                    Token::Minus
+                    TokenType::Minus
                 }
             }
             '*' => {
-                self.content.next();
-                if self.content.peek() == Some(&'=') {
-                    self.content.next();
-                    Token::StarEql
+                self.next_char();
+                if self.peek() == Some(&'=') {
+                    self.next_char();
+                    TokenType::StarEql
                 } else {
-                    Token::Star
+                    TokenType::Star
                 }
             }
             '/' => {
-                self.content.next();
-                if self.content.peek() == Some(&'=') {
-                    self.content.next();
-                    Token::DivEql
+                self.next_char();
+                if self.peek() == Some(&'=') {
+                    self.next_char();
+                    TokenType::DivEql
                 } else {
-                    Token::Div
+                    TokenType::Div
                 }
             }
             '<' => {
-                self.content.next();
-                if self.content.peek() == Some(&'=') {
-                    self.content.next();
-                    Token::LessEql
+                self.next_char();
+                if self.peek() == Some(&'=') {
+                    self.next_char();
+                    TokenType::LessEql
                 } else {
-                    Token::Less
+                    TokenType::Less
                 }
             }
             '>' => {
-                self.content.next();
-                if self.content.peek() == Some(&'=') {
-                    self.content.next();
-                    Token::GreaterEql
+                self.next_char();
+                if self.peek() == Some(&'=') {
+                    self.next_char();
+                    TokenType::GreaterEql
                 } else {
-                    Token::Greater
+                    TokenType::Greater
                 }
             }
             '=' => {
-                self.content.next();
-                if self.content.peek() == Some(&'>') {
-                    self.content.next();
-                    Token::FatRightArrow
-                } else if self.content.peek() == Some(&'=') {
-                    self.content.next();
-                    Token::DoubleEql
+                self.next_char();
+                if self.peek() == Some(&'>') {
+                    self.next_char();
+                    TokenType::FatRightArrow
+                } else if self.peek() == Some(&'=') {
+                    self.next_char();
+                    TokenType::DoubleEql
                 } else {
-                    Token::Eql
+                    TokenType::Eql
                 }
             }
             '|' => {
-                self.content.next();
-                if self.content.peek() == Some(&'>') {
-                    self.content.next();
-                    Token::Pipe
+                self.next_char();
+                if self.peek() == Some(&'>') {
+                    self.next_char();
+                    TokenType::Pipe
                 } else {
-                    Token::VertBar
+                    TokenType::VertBar
                 }
             }
 
-            ';' => {
-                self.content.next();
-                Token::SemiColon
-            }
-            ',' => {
-                self.content.next();
-                Token::Comma
-            }
-            '?' => {
-                self.content.next();
-                Token::Question
-            }
-            '!' => {
-                self.content.next();
-                Token::Bang
-            }
-            '#' => {
-                self.content.next();
-                Token::Pound
-            }
-            '(' => {
-                self.content.next();
-                Token::OParen
-            }
-            ')' => {
-                self.content.next();
-                Token::CParen
-            }
-            '{' => {
-                self.content.next();
-                Token::OBrack
-            }
-            '}' => {
-                self.content.next();
-                Token::CBrack
-            }
-            '[' => {
-                self.content.next();
-                Token::OSquare
-            }
-            ']' => {
-                self.content.next();
-                Token::CSquare
-            }
+            ';' => { self.next_char(); TokenType::SemiColon }
+            ',' => { self.next_char(); TokenType::Comma }
+            '?' => { self.next_char(); TokenType::Question }
+            '!' => { self.next_char(); TokenType::Bang }
+            '#' => { self.next_char(); TokenType::Pound }
+            '(' => { self.next_char(); TokenType::OParen }
+            ')' => { self.next_char(); TokenType::CParen }
+            '{' => { self.next_char(); TokenType::OBrack }
+            '}' => { self.next_char(); TokenType::CBrack }
+            '[' => { self.next_char(); TokenType::OSquare }
+            ']' => { self.next_char(); TokenType::CSquare }
 
             _ if c.is_alphabetic() || c == '_' => {
                 let ident_str = self.read_ident()?;
-                Token::from(ident_str.as_str())
+                TokenType::from(ident_str.as_str())
             }
             _ if c.is_numeric() => {
                 let number_str = self.read_number()?;
-                Token::Number(number_str)
+                TokenType::Number(number_str)
             }
             '"' => {
                 let string_str = self.read_string()?;
-                Token::String(string_str)
+                TokenType::String(string_str)
             }
             _ => {
-                self.content.next();
-                Token::Invalid(c)
+                self.next_char();
+                TokenType::Invalid(c)
             }
         };
 
-        Ok(token)
+        Ok(Token { kind, loc })
     }
 
     fn skip_whitespace(&mut self) {
-        while self.content.peek().is_some_and(|c| c.is_whitespace()) {
-            self.content.next();
+        while self.peek().is_some_and(|c| c.is_whitespace()) {
+            self.next_char();
         }
     }
 
     fn read_ident(&mut self) -> anyhow::Result<String> {
         let mut res = String::with_capacity(10);
-        while let Some(&c) = self.content.peek() {
+        while let Some(&c) = self.peek() {
             if c.is_alphanumeric() || c == '_' {
-                res.push(self.content.next().unwrap());
+                res.push(self.next_char().unwrap());
             } else {
                 break;
             }
@@ -216,9 +204,9 @@ impl<'a> Lexer<'a> {
 
     fn read_number(&mut self) -> anyhow::Result<String> {
         let mut res = String::with_capacity(10);
-        while let Some(&c) = self.content.peek() {
+        while let Some(&c) = self.peek() {
             if c.is_numeric() || c == '_' {
-                res.push(self.content.next().unwrap());
+                res.push(self.next_char().unwrap());
             } else {
                 break;
             }
@@ -227,13 +215,13 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_string(&mut self) -> anyhow::Result<String> {
-        self.content.next();
+        self.next_char();
         let mut res = String::with_capacity(10);
-        while let Some(&c) = self.content.peek() {
+        while let Some(&c) = self.peek() {
             if c != '"' {
-                res.push(self.content.next().unwrap());
+                res.push(self.next_char().unwrap());
             } else {
-                self.content.next();
+                self.next_char();
                 break;
             }
         }
@@ -263,13 +251,13 @@ impl<'a> Lexer<'a> {
 
     fn skip_comment(&mut self) -> bool {
         let mut skipped = false;
-        if self.content.peek() == Some(&'/') {
-            self.content.next();
-            match self.content.peek() {
+        if self.peek() == Some(&'/') {
+            self.next_char();
+            match self.peek() {
                 // Single-line comment
                 Some(&'/') => {
-                    self.content.next();
-                    while let Some(c) = self.content.next() {
+                    self.next_char();
+                    while let Some(c) = self.next_char() {
                         if c == '\n' {
                             break;
                         }
@@ -278,12 +266,12 @@ impl<'a> Lexer<'a> {
                 }
                 // Multi-line comment /* */
                 Some(&'*') => {
-                    self.content.next();
+                    self.next_char();
                     let mut found_end = false;
-                    while let Some(c) = self.content.next() {
+                    while let Some(c) = self.next_char() {
                         if c == '*' {
-                            if self.content.peek() == Some(&'/') {
-                                self.content.next();
+                            if self.peek() == Some(&'/') {
+                                self.next_char();
                                 found_end = true;
                                 break;
                             }
@@ -306,7 +294,8 @@ impl Iterator for Lexer<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.next_token() {
-            Ok(t) => Some(t),
+            Ok(t) if t.kind != TokenType::EOF => Some(t),
+            Ok(_) => None, // EOF
             Err(e) => {
                 error!("{e}");
                 None

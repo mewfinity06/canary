@@ -1,35 +1,34 @@
+#![allow(unused_imports)]
+
 // Rust imports
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
 
 // Vendor imports
-use clap::Parser;
+use clap::Parser as _;
 
 // Canary mods
 mod canary;
 mod cli;
+mod compiler_test;
 mod lexer;
-mod test_compiler;
+mod parser;
 
 // Canary imports
 use crate::lexer::Lexer;
 use crate::lexer::token::Token;
-use test_compiler as tc;
+use crate::parser::Parser;
+use crate::parser::node::Node;
+use compiler_test as ct;
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
 
-    // let abs_path = cli.get_abs_path()?;
-
-    // let mut reader = BufReader::new(File::open(&abs_path)?);
-    // let mut content = String::new();
-    // reader.read_to_string(&mut content)?;
-
     let res = match cli.command {
         cli::Command::Run { .. } => run_file(cli.get_abs_path()?),
-        cli::Command::TestCompiler => tc::test_compiler(),
-        cli::Command::BuildTests => tc::build_tests(),
+        cli::Command::TestCompiler => ct::test_compiler(),
+        cli::Command::BuildTests => ct::build_tests(),
     };
 
     match res {
@@ -46,24 +45,11 @@ fn run_file(file: PathBuf) -> anyhow::Result<()> {
     let mut content = String::with_capacity(100);
     reader.read_to_string(&mut content)?;
 
-    let mut lexer = Lexer::new(
-        file.to_str()
-            .expect("this to_str should always pass")
-            .to_string(),
-        &content,
-    );
+    let lexer = Lexer::new(&content);
+    let parser = Parser::new(lexer);
 
-    loop {
-        let token = lexer.next().unwrap();
-
-        if let Token::Invalid(c) = token {
-            error!("Unknown character found: {c}");
-            break;
-        } else if Token::EOF == token {
-            break;
-        } else {
-            info!("Found token: {token:?}");
-        }
+    for node in parser {
+        info!("Found node: {:#?}", node);
     }
 
     Ok(())
