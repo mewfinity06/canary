@@ -74,6 +74,7 @@ pub enum Token {
 impl From<&str> for Token {
     fn from(s: &str) -> Self {
         match s {
+            "..." => Self::DotDotDot,
             "const" => Self::Const,
             "val" => Self::Val,
             "mut" => Self::Mut,

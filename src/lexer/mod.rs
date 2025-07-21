@@ -3,9 +3,8 @@ use std::str::Chars;
 
 pub mod token;
 
+use crate::error;
 use token::Token;
-
-use anyhow::anyhow;
 
 pub struct Lexer<'a> {
     file_name: String,
@@ -20,7 +19,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn next(&mut self) -> anyhow::Result<Token> {
+    pub fn next_token(&mut self) -> anyhow::Result<Token> {
         self.skip_whitespace_and_comments();
 
         let c = match self.content.peek() {
@@ -218,7 +217,7 @@ impl<'a> Lexer<'a> {
     fn read_number(&mut self) -> anyhow::Result<String> {
         let mut res = String::with_capacity(10);
         while let Some(&c) = self.content.peek() {
-            if c.is_numeric() {
+            if c.is_numeric() || c == '_' {
                 res.push(self.content.next().unwrap());
             } else {
                 break;
@@ -291,8 +290,7 @@ impl<'a> Lexer<'a> {
                         }
                     }
                     if !found_end {
-                        // Handle unclosed multi-line comment, perhaps return an error or log a warning
-                        // For now, it just consumes till EOF
+                        error!("Found unclosed multiline comment");
                     }
                     skipped = true;
                 }
@@ -300,5 +298,19 @@ impl<'a> Lexer<'a> {
             }
         }
         skipped
+    }
+}
+
+impl Iterator for Lexer<'_> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.next_token() {
+            Ok(t) => Some(t),
+            Err(e) => {
+                error!("{e}");
+                None
+            }
+        }
     }
 }
