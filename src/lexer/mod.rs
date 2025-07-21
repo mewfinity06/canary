@@ -46,7 +46,7 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn next(&mut self) -> anyhow::Result<Token> {
-        self.skip_whitespace();
+        self.skip_whitespace_and_comments();
 
         let c = match self.content.peek() {
             Some(c) => *c,
@@ -277,5 +277,66 @@ impl<'a> Lexer<'a> {
             }
         }
         Ok(res)
+    }
+
+    fn skip_whitespace_and_comments(&mut self) {
+        loop {
+            let mut skipped_something = false;
+            let initial_len = self.content.clone().count();
+
+            self.skip_whitespace();
+
+            if self.content.clone().count() < initial_len {
+                skipped_something = true;
+            }
+
+            if self.skip_comment() {
+                skipped_something = true;
+            }
+
+            if !skipped_something {
+                break;
+            }
+        }
+    }
+
+    fn skip_comment(&mut self) -> bool {
+        let mut skipped = false;
+        if self.content.peek() == Some(&'/') {
+            self.content.next();
+            match self.content.peek() {
+                // Single-line comment
+                Some(&'/') => {
+                    self.content.next();
+                    while let Some(c) = self.content.next() {
+                        if c == '\n' {
+                            break;
+                        }
+                    }
+                    skipped = true;
+                }
+                // Multi-line comment /* */
+                Some(&'*') => {
+                    self.content.next();
+                    let mut found_end = false;
+                    while let Some(c) = self.content.next() {
+                        if c == '*' {
+                            if self.content.peek() == Some(&'/') {
+                                self.content.next();
+                                found_end = true;
+                                break;
+                            }
+                        }
+                    }
+                    if !found_end {
+                        // Handle unclosed multi-line comment, perhaps return an error or log a warning
+                        // For now, it just consumes till EOF
+                    }
+                    skipped = true;
+                }
+                _ => {}
+            }
+        }
+        skipped
     }
 }
