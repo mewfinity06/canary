@@ -29,6 +29,7 @@ fn main() -> anyhow::Result<()> {
     let res = match cli.command {
         cli::Command::Run { .. } => run_file(cli.get_abs_path()?),
         cli::Command::TestCompiler => tc::test_compiler(),
+        cli::Command::BuildTests => tc::build_tests(),
     };
 
     match res {

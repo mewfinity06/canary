@@ -17,7 +17,7 @@ impl Cli {
                 let abs = path::absolute(file)?;
                 Ok(PathBuf::from(abs))
             }
-            Command::TestCompiler => bail!("Can only get absolute path from Run command"),
+            _ => bail!("Can only get absolute path from Run command"),
         }
     }
 }
@@ -26,4 +26,5 @@ impl Cli {
 pub enum Command {
     Run { file: String },
     TestCompiler,
+    BuildTests,
 }

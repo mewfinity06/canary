@@ -1,8 +1,8 @@
 use anyhow::bail;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
-    fs::File,
-    io::{BufReader, Read},
+    fs::{self, File, OpenOptions},
+    io::{BufReader, BufWriter, Read},
 };
 
 use crate::{
@@ -15,15 +15,28 @@ struct Tests {
     tests: Vec<Test>,
 }
 
+impl Tests {
+    fn empty() -> Self {
+        Self { tests: Vec::new() }
+    }
+}
+
 #[derive(Deserialize, Debug)]
 struct Test {
     file: String,
     expected: Vec<String>,
 }
 
-pub fn test_compiler() -> anyhow::Result<()> {
-    use Token::*;
+impl Test {
+    fn empty() -> Self {
+        Self {
+            file: String::new(),
+            expected: Vec::new()
+        }
+    }
+}
 
+pub fn test_compiler() -> anyhow::Result<()> {
     let expected = File::open("./tests/expected.json")?;
     let tests: Tests = serde_json::from_reader(expected)?;
 
@@ -36,72 +49,99 @@ pub fn test_compiler() -> anyhow::Result<()> {
         let mut lexer = Lexer::new(test.file.clone(), &content).into_iter();
 
         for e in test.expected {
-            let t = lexer.next().expect("There should always be a token present");
-            match (e.as_str(), &t) {
-                ("DotDotDot", DotDotDot) => {}
-                ("Assign", Assign) => {}
-                ("PlusEql", PlusEql) => {}
-                ("MinusEql", MinusEql) => {}
-                ("StarEql", StarEql) => {}
-                ("DivEql", DivEql) => {}
-                ("LessEql", LessEql) => {}
-                ("GreaterEql", GreaterEql) => {}
-                ("DoubleEql", DoubleEql) => {}
-                ("RightArrow", RightArrow) => {}
-                ("FatRightArrow", FatRightArrow) => {}
-                ("Pipe", Pipe) => {}
-                ("Colon", Colon) => {}
-                ("SemiColon", SemiColon) => {}
-                ("Eql", Eql) => {}
-                ("Plus", Plus) => {}
-                ("Minus", Minus) => {}
-                ("Star", Star) => {}
-                ("Div", Div) => {}
-                ("Less", Less) => {}
-                ("Greater", Greater) => {}
-                ("VertBar", VertBar) => {}
-                ("Dot", Dot) => {}
-                ("Comma", Comma) => {}
-                ("Question", Question) => {}
-                ("Bang", Bang) => {}
-                ("Pound", Pound) => {}
-                ("OParen", OParen) => {}
-                ("CParen", CParen) => {}
-                ("OBrack", OBrack) => {}
-                ("CBrack", CBrack) => {}
-                ("OSquare", OSquare) => {}
-                ("CSquare", CSquare) => {}
-                ("Const", Const) => {}
-                ("Val", Val) => {}
-                ("Mut", Mut) => {}
-                ("Struct", Struct) => {}
-                ("Enum", Enum) => {}
-                ("Macro", Macro) => {}
-                ("Impl", Impl) => {}
-                ("Interface", Interface) => {}
-                ("Priv", Priv) => {}
-                ("Pub", Pub) => {}
-                ("Override", Override) => {}
-                ("Fn", Fn) => {}
-                ("Defer", Defer) => {}
-                ("If", If) => {}
-                ("Else", Else) => {}
-                ("Switch", Switch) => {}
-                ("For", For) => {}
-                ("Break", Break) => {}
-                ("Continue", Continue) => {}
-                ("Unreachable", Unreachable) => {}
-                ("Ident", Ident(_)) => {}
-                ("Number", Number(_)) => {}
-                ("String", String(_)) => {}
-                ("Invalid", Invalid(_)) => {}
-                ("EOF", EOF) => {}
-                _ => bail!("{}: Expected {} but found {:?}", test.file, e, t),
+            let t = lexer
+                .next()
+                .expect("There should always be a token present");
+            if e != t.into_str() {
+                bail!("");
             }
         }
 
         info!("{} passed!", test.file);
     }
+
+    Ok(())
+}
+
+impl serde::Serialize for Tests {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("Tests", 1)?;
+        state.serialize_field("tests", &self.tests)?;
+        state.end()
+    }
+}
+
+impl serde::Serialize for Test {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("Test", 1)?;
+        state.serialize_field("expected", &self.expected)?;
+        state.end()
+    }
+}
+
+
+pub fn build_tests() -> anyhow::Result<()> {
+    let test_path = "./tests/";
+    let expected = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open("./tests/expected.json")?;
+    let mut writer = BufWriter::new(expected);
+
+    let mut tests = Tests::empty();
+
+    
+    for entry in fs::read_dir(test_path)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            continue;
+        }
+
+        info!("Entry: {}", path.display());
+
+        if path.to_str().expect("this to_str should always pass") == "./tests/expected.json" {
+            continue;
+        }
+        
+        let file = File::open(&path)?;
+        let mut reader = BufReader::new(file);
+        let mut content = String::new();
+        reader.read_to_string(&mut content)?;
+
+        let mut test = Test::empty();
+
+        let mut lexer = Lexer::new(
+            path.to_str()
+                .expect("this to_str should always pass")
+                .to_string(),
+            &content,
+        );
+
+        loop {
+            let t = lexer
+                .next()
+                .expect("There should always be a token present");
+            if t == Token::EOF {
+                break;
+            }
+            test.expected.push(t.into_str().to_string());
+        }
+
+        tests.tests.push(test);
+    }
+
+    serde_json::to_writer_pretty(&mut writer, &tests)?;
 
     Ok(())
 }
