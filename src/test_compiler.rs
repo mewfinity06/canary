@@ -1,5 +1,5 @@
 use anyhow::bail;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::{
     fs::{self, File, OpenOptions},
     io::{BufReader, BufWriter, Read},
@@ -31,7 +31,7 @@ impl Test {
     fn empty() -> Self {
         Self {
             file: String::new(),
-            expected: Vec::new()
+            expected: Vec::new(),
         }
     }
 }
@@ -82,11 +82,11 @@ impl serde::Serialize for Test {
     {
         use serde::ser::SerializeStruct;
         let mut state = serializer.serialize_struct("Test", 1)?;
+        state.serialize_field("file", &self.file)?;
         state.serialize_field("expected", &self.expected)?;
         state.end()
     }
 }
-
 
 pub fn build_tests() -> anyhow::Result<()> {
     let test_path = "./tests/";
@@ -99,7 +99,6 @@ pub fn build_tests() -> anyhow::Result<()> {
 
     let mut tests = Tests::empty();
 
-    
     for entry in fs::read_dir(test_path)? {
         let entry = entry?;
         let path = entry.path();
@@ -113,13 +112,14 @@ pub fn build_tests() -> anyhow::Result<()> {
         if path.to_str().expect("this to_str should always pass") == "./tests/expected.json" {
             continue;
         }
-        
+
         let file = File::open(&path)?;
         let mut reader = BufReader::new(file);
         let mut content = String::new();
         reader.read_to_string(&mut content)?;
 
         let mut test = Test::empty();
+        test.file = path.to_str().expect("this to_str should always pass").to_string();
 
         let mut lexer = Lexer::new(
             path.to_str()
@@ -140,7 +140,6 @@ pub fn build_tests() -> anyhow::Result<()> {
 
         tests.tests.push(test);
     }
-
     serde_json::to_writer_pretty(&mut writer, &tests)?;
 
     Ok(())

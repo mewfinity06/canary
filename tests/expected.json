@@ -1,6 +1,7 @@
 {
   "tests": [
     {
+      "file": "./tests/macro.cy",
       "expected": [
         "Const",
         "Ident",
@@ -102,6 +103,7 @@
       ]
     },
     {
+      "file": "./tests/hello.cy",
       "expected": [
         "Const",
         "Ident",
@@ -132,6 +134,7 @@
       ]
     },
     {
+      "file": "./tests/person.cy",
       "expected": [
         "Const",
         "Ident",
@@ -396,6 +399,7 @@
       ]
     },
     {
+      "file": "./tests/generics.cy",
       "expected": [
         "Const",
         "Ident",
