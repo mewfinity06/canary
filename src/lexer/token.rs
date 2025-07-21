@@ -24,6 +24,7 @@ pub enum Token {
     Eql,       // =
     Plus,      // +
     Minus,     // -
+    Star,      // *
     Div,       // /
     Less,      // <
     Greater,   // >
@@ -40,11 +41,60 @@ pub enum Token {
     OSquare,   // [
     CSquare,   // ]
 
+    // Keywords
+    Const,
+    Val,
+    Mut,
+    Struct,
+    Enum,
+    Macro,
+    Impl,
+    Interface,
+    Priv,
+    Pub,
+    Override,
+    Fn,
+    Defer,
+    If,
+    Else,
+    Switch,
+    For,
+    Break,
+    Continue,
+    Unreachable,
+
     // Literals
     Ident(String),
-    Keyword(String),
     Number(String),
     String(String),
     Invalid(char),
     EOF,
+}
+
+impl From<&str> for Token {
+    fn from(s: &str) -> Self {
+        match s {
+            "const" => Self::Const,
+            "val" => Self::Val,
+            "mut" => Self::Mut,
+            "struct" => Self::Struct,
+            "enum" => Self::Enum,
+            "macro" => Self::Macro,
+            "impl" => Self::Impl,
+            "interface" => Self::Interface,
+            "priv" => Self::Priv,
+            "pub" => Self::Pub,
+            "override" => Self::Override,
+            "fn" => Self::Fn,
+            "defer" => Self::Defer,
+            "if" => Self::If,
+            "else" => Self::Else,
+            "switch" => Self::Switch,
+            "for" => Self::For,
+            "break" => Self::Break,
+            "continue" => Self::Continue,
+            "unreachable" => Self::Unreachable,
+            _ => Self::Ident(s.to_string()),
+        }
+    }
 }

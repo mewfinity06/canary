@@ -13,31 +13,6 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    const KEYWORDS: &'a [&'a str] = &[
-        "const",
-        "val",
-        "mut",
-        "struct",
-        "enum",
-        "macro",
-        "impl",
-        "interface",
-        "priv",
-        "pub",
-        "override",
-        "fn",
-        "Self",
-        "self",
-        "defer",
-        "if",
-        "else",
-        "switch",
-        "for",
-        "break",
-        "continue",
-        "unreachable",
-    ];
-
     pub fn new(file_name: String, content: &'a String) -> Self {
         Self {
             file_name: file_name,
@@ -104,7 +79,7 @@ impl<'a> Lexer<'a> {
                     self.content.next();
                     Token::StarEql
                 } else {
-                    Token::Invalid(c)
+                    Token::Star
                 }
             }
             '/' => {
@@ -203,11 +178,7 @@ impl<'a> Lexer<'a> {
 
             _ if c.is_alphabetic() || c == '_' => {
                 let ident_str = self.read_ident()?;
-                if Self::is_keyword(&ident_str) {
-                    Token::Keyword(ident_str)
-                } else {
-                    Token::Ident(ident_str)
-                }
+                Token::from(ident_str.as_str())
             }
             _ if c.is_numeric() => {
                 let number_str = self.read_number()?;
@@ -224,15 +195,6 @@ impl<'a> Lexer<'a> {
         };
 
         Ok(token)
-    }
-
-    fn is_keyword(needle: &str) -> bool {
-        for &keyword in Self::KEYWORDS {
-            if needle == keyword {
-                return true;
-            }
-        }
-        false
     }
 
     fn skip_whitespace(&mut self) {
