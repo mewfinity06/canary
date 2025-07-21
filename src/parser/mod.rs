@@ -1,14 +1,17 @@
+use anyhow::{Result, bail};
 use std::iter::Peekable;
-use anyhow::{bail, Result};
 
 pub mod node;
 
 use crate::error;
-use crate::lexer::{Lexer, token::{Token, TokenType}};
+use crate::lexer::{
+    Lexer,
+    token::{Token, TokenType},
+};
 use crate::parser::node::{
-    Node, Stmt, Expr, Atom, Decl, Type, StructField, EnumVariant, ImplBlock, FunctionBody,
-    MacroDefinition, MacroArm, MacroArg, InterfaceMember, SwitchCase, ForLoopKind, WhileLoopKind,
-    IfBranch, ElseBranch,
+    Atom, Decl, ElseBranch, EnumVariant, Expr, ForLoopKind, FunctionBody, IfBranch, ImplBlock,
+    InterfaceMember, MacroArg, MacroArm, MacroDefinition, Node, Stmt, StructField, SwitchCase,
+    Type, WhileLoopKind,
 };
 
 pub struct Parser<'a> {
@@ -35,11 +38,19 @@ impl<'a> Parser<'a> {
 
     /// Expects and consumes a specific token type, returning an error if it doesn't match.
     fn expect_and_consume(&mut self, expected: TokenType) -> Result<Token> {
-        let token = self.next_token().ok_or_else(|| anyhow::anyhow!("Unexpected EOF, expected {:?}", expected))?;
+        let token = self
+            .next_token()
+            .ok_or_else(|| anyhow::anyhow!("Unexpected EOF, expected {:?}", expected))?;
         if token.kind == expected {
             Ok(token)
         } else {
-            bail!("Expected {:?}, found {:?} at line {} col {}", expected, token.kind, token.loc.line, token.loc.col)
+            bail!(
+                "Expected {:?}, found {:?} at line {} col {}",
+                expected,
+                token.kind,
+                token.loc.line,
+                token.loc.col
+            )
         }
     }
 
@@ -63,10 +74,26 @@ impl<'a> Parser<'a> {
                         if let Some(token) = clone.next() {
                             if token.kind == TokenType::Colon {
                                 match clone.next().map(|t| t.kind) {
-                                    Some(TokenType::Struct) => return Ok(Node::Stmt(Stmt::StructDef(self.parse_struct_def()?))),
-                                    Some(TokenType::Enum) => return Ok(Node::Stmt(Stmt::EnumDef(self.parse_enum_def()?))),
-                                    Some(TokenType::Interface) => return Ok(Node::Stmt(Stmt::InterfaceDef(self.parse_interface_def()?))),
-                                    Some(TokenType::Macro) => return Ok(Node::Stmt(Stmt::MacroDef(self.parse_macro_def()?))),
+                                    Some(TokenType::Struct) => {
+                                        return Ok(Node::Stmt(Stmt::StructDef(
+                                            self.parse_struct_def()?,
+                                        )));
+                                    }
+                                    Some(TokenType::Enum) => {
+                                        return Ok(Node::Stmt(Stmt::EnumDef(
+                                            self.parse_enum_def()?,
+                                        )));
+                                    }
+                                    Some(TokenType::Interface) => {
+                                        return Ok(Node::Stmt(Stmt::InterfaceDef(
+                                            self.parse_interface_def()?,
+                                        )));
+                                    }
+                                    Some(TokenType::Macro) => {
+                                        return Ok(Node::Stmt(Stmt::MacroDef(
+                                            self.parse_macro_def()?,
+                                        )));
+                                    }
                                     _ => {}
                                 }
                             }
@@ -75,14 +102,22 @@ impl<'a> Parser<'a> {
                 }
                 Ok(Node::Stmt(Stmt::Decl(self.parse_decl()?)))
             }
-            Some(TokenType::Val) | Some(TokenType::Mut) | Some(TokenType::Priv) | Some(TokenType::Pub) | Some(TokenType::Override) => Ok(Node::Stmt(Stmt::Decl(self.parse_decl()?))),
+            Some(TokenType::Val)
+            | Some(TokenType::Mut)
+            | Some(TokenType::Priv)
+            | Some(TokenType::Pub)
+            | Some(TokenType::Override) => Ok(Node::Stmt(Stmt::Decl(self.parse_decl()?))),
             Some(TokenType::If) => Ok(Node::Stmt(Stmt::If(self.parse_if_stmt()?))),
             Some(TokenType::Switch) => Ok(Node::Stmt(Stmt::Switch(self.parse_switch_stmt()?))),
             Some(TokenType::For) => Ok(Node::Stmt(Stmt::For(self.parse_for_stmt()?))),
             Some(TokenType::While) => Ok(Node::Stmt(Stmt::While(self.parse_while_stmt()?))),
             Some(TokenType::Return) => {
                 self.next_token();
-                let expr = if self.peek().map(|t| &t.kind) == Some(&TokenType::SemiColon) { None } else { Some(self.parse_expr()?) };
+                let expr = if self.peek().map(|t| &t.kind) == Some(&TokenType::SemiColon) {
+                    None
+                } else {
+                    Some(self.parse_expr()?)
+                };
                 self.expect_and_consume(TokenType::SemiColon)?;
                 Ok(Node::Stmt(Stmt::Return(expr)))
             }
@@ -105,7 +140,9 @@ impl<'a> Parser<'a> {
                         self.expect_and_consume(TokenType::SemiColon)?;
                         Ok(Node::Expr(expr))
                     }
-                    Some(TokenType::PlusEql) => Ok(Node::Stmt(Stmt::ImplBlock(self.parse_impl_block()?))),
+                    Some(TokenType::PlusEql) => {
+                        Ok(Node::Stmt(Stmt::ImplBlock(self.parse_impl_block()?)))
+                    }
                     _ => {
                         let expr = self.parse_expr()?;
                         if self.peek().map(|t| &t.kind) == Some(&TokenType::SemiColon) {
@@ -128,10 +165,15 @@ impl<'a> Parser<'a> {
 
     /// Parses a declaration statement.
     fn parse_decl(&mut self) -> Result<Decl> {
-        let protection = self.next_token().ok_or_else(|| anyhow::anyhow!("Expected protection keyword"))?;
+        let protection = self
+            .next_token()
+            .ok_or_else(|| anyhow::anyhow!("Expected protection keyword"))?;
         let name = self.expect_ident()?;
         let mut type_ = None;
-        let special_type = matches!(protection.kind, TokenType::Struct | TokenType::Enum | TokenType::Interface);
+        let special_type = matches!(
+            protection.kind,
+            TokenType::Struct | TokenType::Enum | TokenType::Interface
+        );
 
         if self.peek().map(|t| &t.kind) == Some(&TokenType::Colon) {
             self.next_token();
@@ -176,7 +218,10 @@ impl<'a> Parser<'a> {
             self.expect_and_consume(TokenType::CParen)?;
             self.expect_and_consume(TokenType::RightArrow)?;
             let return_type = self.parse_type()?;
-            base_type = Expr::FunctionType { params, return_type: Box::new(return_type) };
+            base_type = Expr::FunctionType {
+                params,
+                return_type: Box::new(return_type),
+            };
         } else {
             base_type = self.parse_expr()?;
         }
@@ -258,7 +303,7 @@ impl<'a> Parser<'a> {
                         callee: Box::new(expr),
                         args,
                     };
-                },
+                }
                 Some(TokenType::Dot) => {
                     self.next_token();
                     let member = self.expect_ident()?;
@@ -266,7 +311,7 @@ impl<'a> Parser<'a> {
                         object: Box::new(expr),
                         member,
                     };
-                },
+                }
                 Some(TokenType::OSquare) => {
                     self.next_token();
                     let index = self.parse_expr()?;
@@ -275,7 +320,7 @@ impl<'a> Parser<'a> {
                         array: Box::new(expr),
                         index: Box::new(index),
                     };
-                },
+                }
                 _ => break,
             }
         }
@@ -293,7 +338,7 @@ impl<'a> Parser<'a> {
                 let expr = self.parse_expr()?;
                 self.expect_and_consume(TokenType::CParen)?;
                 Ok(Expr::Parenthesized(Box::new(expr)))
-            },
+            }
             Some(TokenType::OBrack) => {
                 self.next_token();
                 let mut elements = Vec::new();
@@ -305,7 +350,7 @@ impl<'a> Parser<'a> {
                 }
                 self.expect_and_consume(TokenType::CBrack)?;
                 Ok(Expr::ArrayLiteral(elements))
-            },
+            }
             Some(TokenType::Dot) => {
                 self.next_token();
                 if self.peek().map(|t| &t.kind) == Some(&TokenType::OBrack) {
@@ -338,11 +383,11 @@ impl<'a> Parser<'a> {
                 } else {
                     bail!("Expected identifier or {{ after dot for literal")
                 }
-            },
+            }
             Some(TokenType::Unreachable) => {
                 self.next_token();
                 Ok(Expr::Unreachable)
-            },
+            }
             _ => bail!("Expected an atom, found {:?}", self.peek()),
         }
     }
@@ -350,8 +395,17 @@ impl<'a> Parser<'a> {
     /// Returns the precedence and associativity of an operator.
     fn get_operator_precedence(&self, token: &TokenType) -> (u8, Associativity) {
         match token {
-            TokenType::Eql | TokenType::Assign | TokenType::PlusEql | TokenType::MinusEql | TokenType::StarEql | TokenType::DivEql => (1, Associativity::Right),
-            TokenType::DoubleEql | TokenType::Less | TokenType::Greater | TokenType::LessEql | TokenType::GreaterEql => (2, Associativity::Left),
+            TokenType::Eql
+            | TokenType::Assign
+            | TokenType::PlusEql
+            | TokenType::MinusEql
+            | TokenType::StarEql
+            | TokenType::DivEql => (1, Associativity::Right),
+            TokenType::DoubleEql
+            | TokenType::Less
+            | TokenType::Greater
+            | TokenType::LessEql
+            | TokenType::GreaterEql => (2, Associativity::Left),
             TokenType::Plus | TokenType::Minus => (3, Associativity::Left),
             TokenType::Star | TokenType::Div => (4, Associativity::Left),
             _ => (0, Associativity::Left),
@@ -376,7 +430,7 @@ impl<'a> Parser<'a> {
 
         Ok(MacroDefinition { name, arms })
     }
-    
+
     /// Parses a macro arm.
     fn parse_macro_arm(&mut self) -> Result<MacroArm> {
         self.expect_and_consume(TokenType::OParen)?;
@@ -391,13 +445,13 @@ impl<'a> Parser<'a> {
             }
         }
         self.expect_and_consume(TokenType::CParen)?;
-    
+
         self.expect_and_consume(TokenType::Assign)?;
         self.expect_and_consume(TokenType::OBrack)?;
         let body = self.parse_function_body()?;
         self.expect_and_consume(TokenType::CBrack)?;
         self.expect_and_consume(TokenType::SemiColon)?;
-    
+
         Ok(MacroArm { params, body })
     }
 
@@ -433,7 +487,7 @@ impl<'a> Parser<'a> {
                 } else {
                     Ok(MacroArg::InterpolatedIdent(self.expect_ident()?))
                 }
-            },
+            }
             Some(TokenType::String(_)) => Ok(MacroArg::String(self.next_token().unwrap())),
             _ => Ok(MacroArg::Expr(self.parse_expr()?)),
         }
@@ -470,10 +524,14 @@ impl<'a> Parser<'a> {
         let mut fields = Vec::new();
         while self.peek().map(|t| &t.kind) != Some(&TokenType::CBrack) {
             let is_private = self.peek().map(|t| &t.kind) == Some(&TokenType::Priv);
-            if is_private { self.next_token(); }
+            if is_private {
+                self.next_token();
+            }
             let field_name = self.expect_ident()?;
             let is_optional = self.peek().map(|t| &t.kind) == Some(&TokenType::Question);
-            if is_optional { self.next_token(); }
+            if is_optional {
+                self.next_token();
+            }
 
             let field_type = if self.peek().map(|t| &t.kind) == Some(&TokenType::Colon) {
                 self.next_token();
@@ -565,7 +623,10 @@ impl<'a> Parser<'a> {
             } else {
                 None
             };
-            variants.push(EnumVariant { name: variant_name, type_: variant_type });
+            variants.push(EnumVariant {
+                name: variant_name,
+                type_: variant_type,
+            });
             if self.peek().map(|t| &t.kind) == Some(&TokenType::Comma) {
                 self.next_token();
             }
@@ -585,7 +646,9 @@ impl<'a> Parser<'a> {
         let mut members = Vec::new();
         while self.peek().map(|t| &t.kind) != Some(&TokenType::CBrack) {
             let is_override = self.peek().map(|t| &t.kind) == Some(&TokenType::Override);
-            if is_override { self.next_token(); }
+            if is_override {
+                self.next_token();
+            }
             self.expect_and_consume(TokenType::Const)?;
             let member_name = self.expect_ident()?;
             self.expect_and_consume(TokenType::Colon)?;
@@ -659,7 +722,11 @@ impl<'a> Parser<'a> {
         }
         self.expect_and_consume(TokenType::CBrack)?;
         self.expect_and_consume(TokenType::SemiColon)?;
-        Ok(ImplBlock { target_name, impl_name, members })
+        Ok(ImplBlock {
+            target_name,
+            impl_name,
+            members,
+        })
     }
 
     /// Parses the body of a function.
@@ -776,7 +843,10 @@ impl<'a> Parser<'a> {
         let mut capture = None;
 
         if let Some(token) = self.peek() {
-            if matches!(token.kind, TokenType::Mut | TokenType::Val | TokenType::Const) {
+            if matches!(
+                token.kind,
+                TokenType::Mut | TokenType::Val | TokenType::Const
+            ) {
                 let decl_node = self.parse_decl()?;
                 init_decl = Some(Box::new(decl_node));
                 condition = Some(Box::new(self.parse_expr()?));
@@ -858,7 +928,12 @@ impl<'a> Parser<'a> {
                 if let TokenType::Ident(_) = token.kind {
                     Ok(token)
                 } else {
-                    bail!("Expected an identifier, found {:?} at line {} col {}", token.kind, token.loc.line, token.loc.col)
+                    bail!(
+                        "Expected an identifier, found {:?} at line {} col {}",
+                        token.kind,
+                        token.loc.line,
+                        token.loc.col
+                    )
                 }
             }
             None => bail!("Expected an identifier, found EOF"),

@@ -7,7 +7,10 @@ use std::{
 
 use crate::{
     info,
-    lexer::{Lexer, token::{TokenType, Token}},
+    lexer::{
+        Lexer,
+        token::{Token, TokenType},
+    },
 };
 
 #[derive(Deserialize, Debug)]
@@ -49,7 +52,10 @@ pub fn test_compiler() -> anyhow::Result<()> {
         let lexer = Lexer::new(&content);
 
         for (i, e) in test.expected.iter().enumerate() {
-            let t = lexer.clone().into_iter().nth(i)
+            let t = lexer
+                .clone()
+                .into_iter()
+                .nth(i)
                 .expect("There should always be a token present");
             if e != t.kind.clone().into_str() {
                 bail!("Token mismatch: expected {}, got {}", e, t.kind.into_str());

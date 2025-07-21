@@ -4,7 +4,7 @@ use std::str::Chars;
 pub mod token;
 
 use crate::error;
-use token::{Token, TokenType, Location};
+use token::{Location, Token, TokenType};
 
 #[derive(Clone)]
 pub struct Lexer<'a> {
@@ -34,7 +34,7 @@ impl<'a> Lexer<'a> {
         }
         next
     }
-    
+
     fn peek(&mut self) -> Option<&char> {
         self.content.peek()
     }
@@ -42,10 +42,18 @@ impl<'a> Lexer<'a> {
     pub fn next_token(&mut self) -> anyhow::Result<Token> {
         self.skip_whitespace_and_comments();
 
-        let loc = Location { line: self.line, col: self.col };
+        let loc = Location {
+            line: self.line,
+            col: self.col,
+        };
         let c = match self.peek() {
             Some(c) => *c,
-            None => return Ok(Token { kind: TokenType::EOF, loc }),
+            None => {
+                return Ok(Token {
+                    kind: TokenType::EOF,
+                    loc,
+                });
+            }
         };
 
         let kind = match c {
@@ -151,17 +159,50 @@ impl<'a> Lexer<'a> {
                 }
             }
 
-            ';' => { self.next_char(); TokenType::SemiColon }
-            ',' => { self.next_char(); TokenType::Comma }
-            '?' => { self.next_char(); TokenType::Question }
-            '!' => { self.next_char(); TokenType::Bang }
-            '#' => { self.next_char(); TokenType::Pound }
-            '(' => { self.next_char(); TokenType::OParen }
-            ')' => { self.next_char(); TokenType::CParen }
-            '{' => { self.next_char(); TokenType::OBrack }
-            '}' => { self.next_char(); TokenType::CBrack }
-            '[' => { self.next_char(); TokenType::OSquare }
-            ']' => { self.next_char(); TokenType::CSquare }
+            ';' => {
+                self.next_char();
+                TokenType::SemiColon
+            }
+            ',' => {
+                self.next_char();
+                TokenType::Comma
+            }
+            '?' => {
+                self.next_char();
+                TokenType::Question
+            }
+            '!' => {
+                self.next_char();
+                TokenType::Bang
+            }
+            '#' => {
+                self.next_char();
+                TokenType::Pound
+            }
+            '(' => {
+                self.next_char();
+                TokenType::OParen
+            }
+            ')' => {
+                self.next_char();
+                TokenType::CParen
+            }
+            '{' => {
+                self.next_char();
+                TokenType::OBrack
+            }
+            '}' => {
+                self.next_char();
+                TokenType::CBrack
+            }
+            '[' => {
+                self.next_char();
+                TokenType::OSquare
+            }
+            ']' => {
+                self.next_char();
+                TokenType::CSquare
+            }
 
             _ if c.is_alphabetic() || c == '_' => {
                 let ident_str = self.read_ident()?;
