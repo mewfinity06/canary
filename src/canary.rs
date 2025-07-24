@@ -31,3 +31,12 @@ macro_rules! error {
         println!($( $arg ),+);
     };
 }
+
+#[macro_export]
+macro_rules! debug {
+    ($( $arg:expr ),+) => {
+        use crate::canary::*;
+        print!("[{}DEBUG{}] ", INFO, RESET);
+        println!($( $arg ),+);
+    };
+}

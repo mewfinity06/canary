@@ -7,10 +7,7 @@ use std::{
 
 use crate::{
     info,
-    lexer::{
-        Lexer,
-        token::{Token, TokenType},
-    },
+    lexer::{Lexer, TokenType},
 };
 
 #[derive(Deserialize, Debug)]
@@ -93,7 +90,7 @@ impl serde::Serialize for Test {
     }
 }
 
-pub fn build_tests() -> anyhow::Result<()> {
+pub fn build_test_compiler() -> anyhow::Result<()> {
     let test_path = "./tests/";
     let expected = OpenOptions::new()
         .write(true)

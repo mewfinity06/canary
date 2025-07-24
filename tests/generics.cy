@@ -1,6 +1,5 @@
 const printf := std.c.printf;
 
-// ...snip from Canary stdlib... //
 const Result : enum<T, E> = {
     Ok: T,
     Error: E,

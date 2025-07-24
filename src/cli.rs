@@ -1,7 +1,8 @@
+#![allow(dead_code)]
+
 use std::path::{self, PathBuf};
 
 use anyhow::bail;
-
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
