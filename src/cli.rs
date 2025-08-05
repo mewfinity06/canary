@@ -25,7 +25,12 @@ impl Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
+    #[clap(short_flag = 'r')]
     Run { file: String },
+    #[clap(long_flag = "tc")]
     TestCompiler,
+    #[clap(long_flag = "bt")]
     BuildTests,
+    #[clap(long_flag = "btc")]
+    BuildAndTestCompiler,
 }

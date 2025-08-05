@@ -1,9 +1,8 @@
-mod canary;
 mod cli;
-mod lexer;
-mod parser;
 mod runner;
 mod tester;
+
+use utils::error;
 
 use anyhow::Result;
 use clap::Parser as ClapParser;
@@ -16,6 +15,10 @@ fn main() -> Result<()> {
         cli::Command::Run { .. } => runner::run_file(&cli),
         cli::Command::TestCompiler => tester::test_compiler(),
         cli::Command::BuildTests => tester::build_test_compiler(),
+        cli::Command::BuildAndTestCompiler => {
+            tester::build_test_compiler()?;
+            tester::test_compiler()
+        }
     };
 
     match res {
