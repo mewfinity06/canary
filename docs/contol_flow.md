@@ -11,17 +11,6 @@
 
 - 'switch' '(' <SWITCHCONDITION> ')' '{' <SWITCHBODY> '}'
 
-## For
-
-- 'for' '(' <FORCONDITION> ')' '{' <FORBODY> '}'
-- 'for' '(' <FORCONDITION> ')' ':' '|' <CAPTUREBODY> '|' '{' <FORBODY> '}'
-
-## While
-
-- 'while' '(' <WHILECONDITION> ')' '{' <WHILEBODY> '}'
-- 'while' '(' <WHILECONDITION> ')' ':' '|' <CAPTUREBODY> '|' '{' <WHILEBODY> '}'
-- 'while' '(' <WHILECONDITION> ')' ':' '(' <WHILEUPDATEBODY> ')' '{' <WHILEBODY> '}'
-
 ## Examples
 
 ```rust
@@ -60,28 +49,4 @@ const do_activity : fn(activity: Activity) -> void = {
         .NoMore => return,
     };
 };
-
-// For example
-
-const my_list : []u8 = [1, 2, 3, 4, 5];
-
-for (mut i := 0; i < my_list.len; i += 1) {
-    printf("Item {d} is {d}\n", i, my_list[i]);
-}
-
-for (my_list) : |item| {
-    printf("Found item {d}", item);
-}
-
-// While example
-
-mut x := 0;
-while (true) : (x += 1) {
-    if (x >= 100) { break; }
-}
-
-const my_iterator := MyCustomIterator.new();
-while (my_iterator.next()) : |item| {
-    // do something with `item`
-}
 ```

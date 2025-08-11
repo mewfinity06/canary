@@ -70,8 +70,6 @@ pub enum TokenType {
     If,
     Else,
     Switch,
-    For,
-    While,
     Return,
     Break,
     Continue,
@@ -90,7 +88,6 @@ impl TokenType {
         use TokenType::*;
         match self {
             Return => "Return",
-            While => "While",
             DotDotDot => "DotDotDot",
             Assign => "Assign",
             PlusEql => "PlusEql",
@@ -140,7 +137,6 @@ impl TokenType {
             If => "If",
             Else => "Else",
             Switch => "Switch",
-            For => "For",
             Break => "Break",
             Continue => "Continue",
             Unreachable => "Unreachable",
@@ -157,7 +153,6 @@ impl From<&str> for TokenType {
     fn from(s: &str) -> Self {
         match s {
             "return" => Self::Return,
-            "while" => Self::While,
             "const" => Self::Const,
             "val" => Self::Val,
             "mut" => Self::Mut,
@@ -174,7 +169,6 @@ impl From<&str> for TokenType {
             "if" => Self::If,
             "else" => Self::Else,
             "switch" => Self::Switch,
-            "for" => Self::For,
             "break" => Self::Break,
             "continue" => Self::Continue,
             "unreachable" => Self::Unreachable,
