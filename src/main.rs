@@ -1,6 +1,6 @@
 mod cli;
 mod runner;
-mod tester2;
+mod tester;
 
 use utils::error;
 
@@ -13,11 +13,11 @@ fn main() -> Result<()> {
 
     let res = match cli.command {
         cli::Command::Run { .. } => runner::run_file(&cli),
-        cli::Command::BuildTests => tester2::build_tests(),
-        cli::Command::RunTests => tester2::run_tests(),
-        cli::Command::BuildAndRunTests => tester2::build_and_run_tests(),
-        cli::Command::BuildReadmeTests => tester2::build_readme_test(),
-        cli::Command::RunReadmeTests => tester2::run_readme_test(),
+        cli::Command::BuildTests => tester::build_tests(),
+        cli::Command::RunTests => tester::run_tests(),
+        cli::Command::BuildAndRunTests => tester::build_and_run_tests(),
+        cli::Command::BuildReadmeTests => tester::build_readme_test(),
+        cli::Command::RunReadmeTests => tester::run_readme_test(),
     };
 
     match res {
