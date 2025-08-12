@@ -55,7 +55,7 @@ pub enum TokenType {
 
     // Keywords
     Const,
-    Val,
+    Let,
     Mut,
     Struct,
     Enum,
@@ -81,6 +81,8 @@ pub enum TokenType {
     String(String),
     Invalid(char),
     EOF,
+
+    Error(String),
 }
 
 impl TokenType {
@@ -122,7 +124,7 @@ impl TokenType {
             OSquare => "OSquare",
             CSquare => "CSquare",
             Const => "Const",
-            Val => "Val",
+            Let => "Let",
             Mut => "Mut",
             Struct => "Struct",
             Enum => "Enum",
@@ -145,6 +147,7 @@ impl TokenType {
             String(_) => "String",
             Invalid(_) => "Invalid",
             EOF => "EOF",
+            Error(_) => unreachable,
         }
     }
 }
@@ -154,7 +157,7 @@ impl From<&str> for TokenType {
         match s {
             "return" => Self::Return,
             "const" => Self::Const,
-            "val" => Self::Val,
+            "let" => Self::Let,
             "mut" => Self::Mut,
             "struct" => Self::Struct,
             "enum" => Self::Enum,

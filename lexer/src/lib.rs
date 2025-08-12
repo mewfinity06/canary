@@ -336,8 +336,8 @@ impl Iterator for Lexer<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.next_token() {
-            Ok(t) if t.kind != TokenType::EOF => Some(t),
-            Ok(_) => None, // EOF
+            Ok(t) if t.kind == TokenType::EOF => None, // EOF
+            Ok(t) => Some(t),
             Err(e) => {
                 error!("{e}");
                 None
