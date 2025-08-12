@@ -2,10 +2,10 @@
 use std::iter::Peekable;
 use std::str::Chars;
 
-mod token;
+pub mod token;
 
-use utils::error;
 use crate::token::{Location, Token, TokenType};
+use utils::error;
 
 #[derive(Clone)]
 pub struct Lexer<'a> {

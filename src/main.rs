@@ -14,8 +14,10 @@ fn main() -> Result<()> {
     let res = match cli.command {
         cli::Command::Run { .. } => runner::run_file(&cli),
         cli::Command::BuildTests => tester2::build_tests(),
-        cli::Command::TestCompiler => tester2::run_tests(),
-        cli::Command::BuildAndTestCompiler => tester2::build_and_run_tests(),
+        cli::Command::RunTests => tester2::run_tests(),
+        cli::Command::BuildAndRunTests => tester2::build_and_run_tests(),
+        cli::Command::BuildReadmeTests => tester2::build_readme_test(),
+        cli::Command::RunReadmeTests => tester2::run_readme_test(),
     };
 
     match res {

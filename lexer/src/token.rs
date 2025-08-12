@@ -147,7 +147,7 @@ impl TokenType {
             String(_) => "String",
             Invalid(_) => "Invalid",
             EOF => "EOF",
-            Error(_) => unreachable,
+            Error(_) => unreachable!(),
         }
     }
 }

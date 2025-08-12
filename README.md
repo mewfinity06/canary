@@ -10,7 +10,7 @@ See [tests](./tests/) for must up-to-date syntax
 
 ## Examples
 
-```rust test mega_test
+```canary test mega_test
 // Variables!
 
 // Mutable variable, explicit type
