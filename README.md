@@ -22,7 +22,7 @@ let bar := 420;
 
 // Const variable, type must be known at compile time
 //   not castable to 'mut'
-const Baz := str = "I am a string!s";
+const Baz : str = "I am a string!s";
 
 // Static variable, type must be known at compile time
 //   immutable, castable to 'mut'

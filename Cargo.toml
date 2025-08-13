@@ -10,9 +10,9 @@ members = ["lexer", "parser", "utils"]
 [dependencies]
 anyhow = "1.0.98"
 clap = { version = "4.5.41", features = ["derive"] }
-rayon = "1.10.0"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.141"
 lexer = { path = "./lexer" }
 parser = { path = "./parser" }
 utils = { path = "./utils" }
+rayon = "1.11.0"
