@@ -44,6 +44,10 @@ impl<'a> Parser<'a> {
             {
                 Ok(Node::Stmt(Stmt::Decl(self.parse_decl()?)))
             }
+            Some(t) if t.kind == TokenType::OBrack || t.kind == TokenType::CBrack => {
+                self.lexer.next();
+                self.next()
+            }
             Some(t) => bail!("Unhandled token: {:?}", t),
             None => Ok(Node::EOF),
         }
@@ -121,9 +125,7 @@ impl<'a> Parser<'a> {
         {
             // `:=`
             TokenType::Assign => None,
-            // `:` <TYPE> `=`
-            TokenType::Colon => bail!("Known type is unhandled at this point"),
-            t => bail!("Expected Assign or Colon, found {:?}", t),
+            t => bail!("Expected Assign, found {:?}", t),
         };
 
         let expr = self.parse_expr(0)?;

@@ -7,6 +7,9 @@ use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 pub struct Cli {
+    /// Adds verbose logging
+    #[clap(short='v', long="verbose")]
+    pub verbose: bool,
     #[clap(subcommand)]
     pub command: Command,
 }
@@ -26,9 +29,7 @@ impl Cli {
 #[derive(Subcommand, Debug)]
 pub enum Command {
     Run { file: String },
-    RunTests,
     BuildTests,
+    RunTests,
     BuildAndRunTests,
-    BuildReadmeTests,
-    RunReadmeTests,
 }
