@@ -1,1 +1,1 @@
-const main : fn() -> void = {}
+const main : fn() -> void = {};

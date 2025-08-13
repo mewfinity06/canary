@@ -57,6 +57,7 @@ pub enum TokenType {
     Const,
     Let,
     Mut,
+    Static,
     Struct,
     Enum,
     Macro,
@@ -89,6 +90,7 @@ impl TokenType {
     pub fn into_str(self) -> &'static str {
         use TokenType::*;
         match self {
+            Static => "Static",
             Return => "Return",
             DotDotDot => "DotDotDot",
             Assign => "Assign",
@@ -155,6 +157,7 @@ impl TokenType {
 impl From<&str> for TokenType {
     fn from(s: &str) -> Self {
         match s {
+            "static" => Self::Static,
             "return" => Self::Return,
             "const" => Self::Const,
             "let" => Self::Let,

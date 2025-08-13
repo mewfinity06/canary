@@ -294,10 +294,12 @@ impl<'a> Lexer<'a> {
     fn skip_comment(&mut self) -> bool {
         let mut skipped = false;
         if self.peek() == Some(&'/') {
-            self.next_char();
-            match self.peek() {
+            let mut content_clone = self.content.clone();
+            content_clone.next();
+            match content_clone.peek() {
                 // Single-line comment
                 Some(&'/') => {
+                    self.next_char();
                     self.next_char();
                     while let Some(c) = self.next_char() {
                         if c == '\n' {
@@ -309,9 +311,11 @@ impl<'a> Lexer<'a> {
                 // Multi-line comment /* */
                 Some(&'*') => {
                     self.next_char();
+                    self.next_char();
                     let mut found_end = false;
                     while let Some(c) = self.next_char() {
-                        if c == '*' {
+                        if c == '*'
+                        {
                             if self.peek() == Some(&'/') {
                                 self.next_char();
                                 found_end = true;
