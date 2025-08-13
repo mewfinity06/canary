@@ -41,8 +41,28 @@ impl<'a> Parser<'a> {
 
         match peeked_kind {
             Some(TokenType::EOF) => Ok(Node::EOF),
-            Some(TokenType::Const) | Some(TokenType::Let) | Some(TokenType::Mut) => {
-                Ok(Node::Stmt(Stmt::Decl(self.parse_decl()?)))
+            Some(TokenType::Const)
+            | Some(TokenType::Let)
+            | Some(TokenType::Mut)
+            | Some(TokenType::Pub) => Ok(Node::Stmt(Stmt::Decl(self.parse_decl()?))),
+            Some(TokenType::Ident(_)) => {
+                if self
+                    .lexer
+                    .clone()
+                    .nth(1)
+                    .map_or(false, |t| t.kind == TokenType::PlusEql)
+                {
+                    Ok(Node::Stmt(Stmt::Decl(self.parse_impl_decl()?)))
+                } else {
+                    // Assume it's an expression statement
+                    let expr = self.parse_expr(0)?;
+                    // Expect semicolon after expression statement
+                    self.expect_and_consume(
+                        TokenType::SemiColon,
+                        "Expected semicolon after expression",
+                    )?;
+                    Ok(Node::Stmt(Stmt::ExprStmt(expr)))
+                }
             }
             Some(TokenType::OBrack) | Some(TokenType::CBrack) => {
                 self.lexer.next(); // Consume the brace
@@ -52,20 +72,13 @@ impl<'a> Parser<'a> {
                 // Assume it's an expression statement
                 let expr = self.parse_expr(0)?;
                 // Expect semicolon after expression statement
-                match self
-                    .lexer
-                    .next()
-                    .ok_or(anyhow::anyhow!(
-                        "Expected semicolon after expression, found none"
-                    ))?
-                    .kind
-                {
-                    TokenType::SemiColon => {}
-                    t => bail!("Expected semicolon after expression, found {:?}", t),
-                }
+                self.expect_and_consume(
+                    TokenType::SemiColon,
+                    "Expected semicolon after expression",
+                )?;
                 Ok(Node::Stmt(Stmt::ExprStmt(expr)))
             }
-            None => Ok(Node::EOF), // Handle EOF when peek() returns None
+            _ => Ok(Node::EOF), // Handle EOF when peek() returns None
         }
     }
 
@@ -98,6 +111,19 @@ impl<'a> Parser<'a> {
             TokenType::String(_) => Ok(Expr::Atom(token)), // Added for string literals
             TokenType::OParen => self.parse_paren(),
             TokenType::OBrack => self.parse_block_expr(),
+            TokenType::Dot => {
+                info!("Current token in parse_atom: Dot");
+                info!("After Dot, peeked: {:?}", self.lexer.peek());
+                if self
+                    .lexer
+                    .peek()
+                    .map_or(false, |t| t.kind == TokenType::OBrack)
+                {
+                    self.parse_struct_literal()
+                } else {
+                    bail!("Unhandled token in parse_atom: Dot (not a struct literal)")
+                }
+            }
             TokenType::Ident(_) => {
                 // If the next token is '(', it's a function call
                 if self
@@ -120,18 +146,8 @@ impl<'a> Parser<'a> {
         self.lexer.next();
         let expr = self.parse_expr(0)?;
         // Consume `)`.
-        match self
-            .lexer
-            .next()
-            .ok_or(anyhow::anyhow!("Expected token, found none"))?
-            .kind
-        {
-            TokenType::CParen => {
-                self.lexer.next();
-                Ok(expr)
-            }
-            _ => bail!("Expected closing parenthesis"),
-        }
+        self.expect_and_consume(TokenType::CParen, "Expected closing parenthesis")?;
+        Ok(expr)
     }
 
     fn parse_block_expr(&mut self) -> anyhow::Result<Expr> {
@@ -145,15 +161,8 @@ impl<'a> Parser<'a> {
             nodes.push(self.next()?);
         }
         // Consume `}`.
-        match self
-            .lexer
-            .next()
-            .ok_or(anyhow::anyhow!("Expected token, found none"))?
-            .kind
-        {
-            TokenType::CBrack => Ok(Expr::Block(Block(nodes))),
-            _ => bail!("Expected closing brace"),
-        }
+        self.expect_and_consume(TokenType::CBrack, "Expected closing brace")?;
+        Ok(Expr::Block(Block(nodes)))
     }
 
     fn parse_type(&mut self) -> anyhow::Result<Type> {
@@ -163,6 +172,31 @@ impl<'a> Parser<'a> {
             .ok_or(anyhow::anyhow!("Expected type, found none"))?;
         match type_token.kind {
             TokenType::Ident(_) => Ok(Type::Identifier(type_token)),
+            TokenType::OParen => {
+                let mut elements = Vec::new();
+                while self
+                    .lexer
+                    .peek()
+                    .map_or(false, |t| t.kind != TokenType::CParen)
+                {
+                    elements.push(Box::new(self.parse_type()?));
+
+                    match self.lexer.peek().map(|t| &t.kind) {
+                        Some(TokenType::Comma) => {
+                            self.lexer.next(); // Consume comma
+                        }
+                        Some(TokenType::CParen) => {
+                            // Closing parenthesis, break loop
+                            break;
+                        }
+                        t => bail!("Expected ',' or ')' after parameter, found {:?}", t),
+                    }
+                }
+
+                self.expect_and_consume(TokenType::CParen, "Expected ')'")?;
+
+                Ok(Type::Touple(elements))
+            }
             _ => bail!("Expected identifier for type, found {:?}", type_token.kind),
         }
     }
@@ -181,45 +215,62 @@ impl<'a> Parser<'a> {
         }
 
         // Consume ':'
-        match self
-            .lexer
-            .next()
-            .ok_or(anyhow::anyhow!(
-                "Expected ':' after parameter name, found none"
-            ))?
-            .kind
-        {
-            TokenType::Colon => {}
-            _ => bail!("Expected ':' after parameter name"),
-        }
+        self.expect_and_consume(TokenType::Colon, "Expected ':' after parameter name")?;
 
         let param_type = self.parse_type()?;
 
         Ok(Parameter { name, param_type })
     }
 
-    fn parse_function_definition(&mut self, prot: Token, name: Token) -> anyhow::Result<Function> {
-        // Consume `fn`
-        match self
+    fn parse_struct_definition(&mut self, name: Token) -> anyhow::Result<Struct> {
+        // consume `struct`
+        self.expect_and_consume(TokenType::Struct, "Expected 'struct'")?;
+
+        // consume `=`
+        self.expect_and_consume(TokenType::Eql, "Expected '='")?;
+
+        // consume '{'
+        self.expect_and_consume(TokenType::OBrack, "Expected '}")?;
+
+        let mut members = Vec::new();
+        while self
             .lexer
-            .next()
-            .ok_or(anyhow::anyhow!("Expected 'fn', found none"))?
-            .kind
+            .peek()
+            .map_or(false, |t| t.kind != TokenType::CBrack)
         {
-            TokenType::Fn => {}
-            t => bail!("Expected 'fn', found {:?}", t),
+            members.push(self.parse_parameter()?);
+
+            match self.lexer.peek().map(|t| &t.kind) {
+                Some(TokenType::Comma) => {
+                    self.lexer.next();
+                }
+                Some(TokenType::CBrack) => {
+                    break;
+                }
+                t => bail!("Expected ',' or ')' after parameter, found {:?}", t),
+            }
         }
 
+        self.expect_and_consume(TokenType::CBrack, "Expected '}'")?;
+        // self.expect_and_consume(TokenType::SemiColon, "Expected ';'")?;
+
+        Ok(Struct {
+            name: name,
+            members: members,
+        })
+    }
+
+    fn parse_function_definition(
+        &mut self,
+        visibility: Option<Token>,
+        prot: Token,
+        name: Token,
+    ) -> anyhow::Result<Function> {
+        // Consume `fn`
+        self.expect_and_consume(TokenType::Fn, "Expected 'fn'")?;
+
         // Consume `(`
-        match self
-            .lexer
-            .next()
-            .ok_or(anyhow::anyhow!("Expected '(', found none"))?
-            .kind
-        {
-            TokenType::OParen => {}
-            t => bail!("Expected '(', found {:?}", t),
-        }
+        self.expect_and_consume(TokenType::OParen, "Expected '('")?;
 
         let mut params = Vec::new();
         // Parse parameters until `)`
@@ -244,48 +295,22 @@ impl<'a> Parser<'a> {
         }
 
         // Consume `)`
-        match self
-            .lexer
-            .next()
-            .ok_or(anyhow::anyhow!("Expected ')', found none"))?
-            .kind
-        {
-            TokenType::CParen => {}
-            t => bail!("Expected ')', found {:?}", t),
-        }
+        self.expect_and_consume(TokenType::CParen, "Expected ')'")?;
 
         // Consume `->`
-        match self
-            .lexer
-            .next()
-            .ok_or(anyhow::anyhow!("Expected '->', found none"))?
-            .kind
-        {
-            TokenType::RightArrow => {}
-            t => bail!("Expected '->', found {:?}", t),
-        }
+        self.expect_and_consume(TokenType::RightArrow, "Expected '->'")?;
 
         // Parse return type
         let return_type = self.parse_type()?;
 
         // Consume `=`
-        match self
-            .lexer
-            .next()
-            .ok_or(anyhow::anyhow!("Expected '=', found none"))?
-            .kind
-        {
-            TokenType::Eql => {}
-            t => bail!("Expected '=', found {:?}", t),
-        }
+        self.expect_and_consume(TokenType::Eql, "Expected '='")?;
 
         // Parse function body (block expression)
-        let body = match self.parse_block_expr()? {
-            Expr::Block(block) => block,
-            _ => bail!("Expected a block for function body"),
-        };
+        let body = self.parse_expr(0)?;
 
         Ok(Function {
+            visibility,
             prot,
             name,
             params,
@@ -296,15 +321,7 @@ impl<'a> Parser<'a> {
 
     fn parse_function_call(&mut self, callee: Token) -> anyhow::Result<Expr> {
         // Consume `(`
-        match self
-            .lexer
-            .next()
-            .ok_or(anyhow::anyhow!("Expected '(', found none"))?
-            .kind
-        {
-            TokenType::OParen => {}
-            t => bail!("Expected '(', found {:?}", t),
-        }
+        self.expect_and_consume(TokenType::OParen, "Expected '('")?;
 
         let mut args = Vec::new();
         // Parse arguments until `)`
@@ -329,20 +346,105 @@ impl<'a> Parser<'a> {
         }
 
         // Consume `)`
-        match self
-            .lexer
-            .next()
-            .ok_or(anyhow::anyhow!("Expected ')', found none"))?
-            .kind
-        {
-            TokenType::CParen => {}
-            t => bail!("Expected ')', found {:?}", t),
-        }
+        self.expect_and_consume(TokenType::CParen, "Expected ')'")?;
 
         Ok(Expr::Call(Call { callee, args }))
     }
 
+    fn parse_struct_literal(&mut self) -> anyhow::Result<Expr> {
+        info!("Entering parse_struct_literal");
+        // Consume `.`
+        let dot_token = self.expect_and_consume(TokenType::Dot, "Expected '.'")?;
+        info!("Consumed: {:?}", dot_token.kind);
+        // Consume `{`
+        let obrack_token = self.expect_and_consume(TokenType::OBrack, "Expected '{'")?;
+        info!("Consumed: {:?}", obrack_token.kind);
+
+        let mut fields = Vec::new();
+        loop {
+            info!(
+                "Looping in parse_struct_literal. Peeked: {:?}",
+                self.lexer.peek()
+            );
+            // If the next token is '}', we're done
+            if self
+                .lexer
+                .peek()
+                .map_or(false, |t| t.kind == TokenType::CBrack)
+            {
+                info!("Breaking loop: CBrack found");
+                break;
+            }
+
+            // Consume `.` for field name
+            let field_dot_token =
+                self.expect_and_consume(TokenType::Dot, "Expected '.' for struct field")?;
+            info!("Consumed: {:?}", field_dot_token.kind);
+            // Consume field name
+            let field_name = self
+                .lexer
+                .next()
+                .ok_or(anyhow::anyhow!("Expected field name, found none"))?;
+            info!("Consumed: {:?}", field_name.kind);
+            match field_name.kind {
+                TokenType::Ident(_) => {} // Correctly matches Ident
+                _ => bail!(
+                    "Expected identifier for field name, found {:?}",
+                    field_name.kind
+                ),
+            }
+
+            // Consume `=
+            let eql_token =
+                self.expect_and_consume(TokenType::Eql, "Expected '=' after field name")?;
+            info!("Consumed: {:?}\n", eql_token.kind);
+
+            // Parse field value
+            let field_value = self.parse_expr(0)?;
+            info!("Parsed field value: {:?}\n", field_value);
+
+            fields.push((field_name, field_value));
+
+            // Check for comma
+            info!("Checking for comma. Peeked: {:?}\n", self.lexer.peek());
+            if self
+                .lexer
+                .peek()
+                .map_or(false, |t| t.kind == TokenType::Comma)
+            {
+                let comma_token = self.lexer.next().unwrap(); // Consume comma
+                info!("Consumed: {:?}\n", comma_token.kind);
+            } else if self
+                .lexer
+                .peek()
+                .map_or(false, |t| t.kind == TokenType::CBrack)
+            {
+                // If no comma, and it's a closing brace, break
+                info!("Breaking loop: CBrack found after field\n");
+                break;
+            } else {
+                bail!("Expected ',' or '}}' after struct field");
+            }
+        }
+
+        // Consume `}`
+        let cbrack_token = self.expect_and_consume(TokenType::CBrack, "Expected '}'")?;
+        info!("Consumed: {:?}\n", cbrack_token.kind);
+
+        Ok(Expr::StructLiteral(StructLiteral { fields }))
+    }
+
     fn parse_decl(&mut self) -> anyhow::Result<Decl> {
+        let visibility = if self
+            .lexer
+            .peek()
+            .map_or(false, |t| t.kind == TokenType::Pub)
+        {
+            Some(self.lexer.next().unwrap())
+        } else {
+            None
+        };
+
         // Will be Const|Let|Mut
         let prot = self
             .lexer
@@ -360,37 +462,35 @@ impl<'a> Parser<'a> {
         }
 
         // Check for type hint or function definition
-        let next_token_kind = &self
+        let next_token_kind = self
             .lexer
             .peek()
             .ok_or(anyhow::anyhow!("Expected token, found none"))?
-            .kind;
+            .kind
+            .clone();
 
         let decl = match next_token_kind {
             TokenType::Colon => {
                 self.lexer.next(); // Consume ':'
-                let peeked_kind = &self
+                let peeked_kind = self
                     .lexer
                     .peek()
                     .ok_or(anyhow::anyhow!("Expected token after ':', found none"))?
-                    .kind;
+                    .kind
+                    .clone();
                 match peeked_kind {
-                    TokenType::Fn => Decl::Function(self.parse_function_definition(prot, name)?),
+                    TokenType::Fn => {
+                        Decl::Function(self.parse_function_definition(visibility, prot, name)?)
+                    }
+                    TokenType::Struct => Decl::Struct(self.parse_struct_definition(name)?),
                     _ => {
                         // It's a variable declaration with a type hint
                         let type_hint = Some(self.parse_type()?);
                         // Consume `:=` or `=`
-                        match self
-                            .lexer
-                            .next()
-                            .ok_or(anyhow::anyhow!("Expected Assign, found none"))?
-                            .kind
-                        {
-                            TokenType::Assign => {}
-                            t => bail!("Expected Assign, found {:?}", t),
-                        };
+                        self.expect_and_consume(TokenType::Assign, "Expected Assign")?;
                         let expr = self.parse_expr(0)?;
                         Decl::Variable(Variable {
+                            visibility,
                             prot,
                             name,
                             type_hint,
@@ -399,32 +499,84 @@ impl<'a> Parser<'a> {
                     }
                 }
             }
-            TokenType::Assign => {
+            TokenType::Assign | TokenType::Eql => {
                 // It's a variable declaration without a type hint
-                self.lexer.next(); // Consume `:=`
+                self.lexer.next(); // Consume `:=` or `=`
                 let expr = self.parse_expr(0)?;
                 Decl::Variable(Variable {
+                    visibility,
                     prot,
                     name,
                     type_hint: None,
                     expr,
                 })
             }
-            t => bail!("Expected ':' or '=', found {:?}", t),
+            _ => bail!("Expected ':' or '=', found {:?}", next_token_kind),
         };
 
         // expect `;`
-        match self
-            .lexer
-            .next()
-            .ok_or(anyhow::anyhow!("Expected token, found none"))?
-            .kind
-        {
-            TokenType::SemiColon => {}
-            t => bail!("Expected Semicolon, found {:?}", t),
-        }
+        self.expect_and_consume(TokenType::SemiColon, "Expected Semicolon")?;
 
         Ok(decl)
+    }
+
+    fn parse_impl_decl(&mut self) -> anyhow::Result<Decl> {
+        let name = self
+            .lexer
+            .next()
+            .ok_or(anyhow::anyhow!("Expected identifier for impl, found none"))?;
+        match name.kind {
+            TokenType::Ident(_) => {}
+            t => bail!("Expected Ident for impl name, found {:?}", t),
+        }
+
+        self.expect_and_consume(TokenType::PlusEql, "Expected '+='")?;
+        self.expect_and_consume(TokenType::Impl, "Expected 'impl'")?;
+        self.expect_and_consume(TokenType::OBrack, "Expected '{'")?;
+
+        let mut members = Vec::new();
+        while self
+            .lexer
+            .peek()
+            .map_or(false, |t| t.kind != TokenType::CBrack)
+        {
+            members.push(self.next()?);
+        }
+
+        self.expect_and_consume(TokenType::CBrack, "Expected '}'")?;
+        self.expect_and_consume(TokenType::SemiColon, "Expected ';'")?;
+
+        Ok(Decl::Impl(Impl {
+            name,
+            members: Block(members),
+        }))
+    }
+
+    // Helper methods for token expectation and consumption
+    fn expect(&mut self, expected_kind: TokenType, msg: &str) -> anyhow::Result<()> {
+        let peeked_kind = self
+            .lexer
+            .peek()
+            .ok_or(anyhow::anyhow!("{}, found none", msg))?;
+        if peeked_kind.kind == expected_kind {
+            Ok(())
+        } else {
+            bail!("{}, found {:?}", msg, peeked_kind.kind)
+        }
+    }
+
+    fn expect_and_consume(&mut self, expected_kind: TokenType, msg: &str) -> anyhow::Result<Token> {
+        info!("expect_and_consume: Expected {:?}", expected_kind);
+        let token = self
+            .lexer
+            .next()
+            .ok_or(anyhow::anyhow!("{}, found none", msg))?;
+        info!("expect_and_consume: Consumed {:?}", token.kind);
+        if token.kind == expected_kind {
+            Ok(token)
+        } else {
+            bail!("{}, found {:?}", msg, token.kind)
+        }
     }
 }
 

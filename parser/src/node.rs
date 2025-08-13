@@ -1,4 +1,5 @@
 use lexer::token::Token;
+use lexer::token::TokenType;
 use std::fmt::{self, Debug};
 
 pub struct Program(pub Vec<Node>);
@@ -57,6 +58,7 @@ pub enum Expr {
     UnaryOp,
     Block(Block),
     Call(Call),
+    StructLiteral(StructLiteral),
 }
 
 impl Debug for Expr {
@@ -67,7 +69,23 @@ impl Debug for Expr {
             Expr::UnaryOp => write!(f, "UnaryOp"),
             Expr::Block(block) => write!(f, "{:#?}", block),
             Expr::Call(call) => write!(f, "{:#?}", call),
+            Expr::StructLiteral(sl) => write!(f, "{:#?}", sl),
         }
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct StructLiteral {
+    pub fields: Vec<(Token, Expr)>,
+}
+
+impl Debug for StructLiteral {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, ".{{\n")?;
+        for (name, expr) in &self.fields {
+            write!(f, "        .{:?} = {:#?}\n", name.kind, expr)?;
+        }
+        write!(f, "    }}")
     }
 }
 
@@ -88,24 +106,40 @@ impl Debug for BinOp {
 pub enum Decl {
     Variable(Variable),
     Function(Function),
-    Struct,
+    Struct(Struct),
     Enum,
     Interface,
     Macro,
+    Impl(Impl),
 }
 
 impl Debug for Decl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Decl::Variable(var) => write!(f, "{:#?}", var),
-            Decl::Function(func) => write!(f, "{:#?}", func),
-            _ => write!(f, "Other Decl"),
+            Self::Variable(e) => write!(f, "{:#?}", e),
+            Self::Function(e) => write!(f, "{:#?}", e),
+            Self::Struct(e) => write!(f, "{:#?}", e),
+            Self::Impl(e) => write!(f, "{:#?}", e),
+            _ => write!(f, "Unhandled decl"),
         }
     }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct Impl {
+    pub name: Token,
+    pub members: Block,
+}
+
+impl Debug for Impl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({:?} += impl {:#?})", self.name.kind, self.members)
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct Variable {
+    pub visibility: Option<Token>,
     pub prot: Token,
     pub name: Token,
     pub type_hint: Option<Type>,
@@ -117,47 +151,87 @@ impl Debug for Variable {
         if let Some(type_hint) = &self.type_hint {
             write!(
                 f,
-                "({:?} {:?} : {:#?} = {:#?})",
-                self.prot.kind, self.name.kind, type_hint, self.expr
+                "({:?} {:?} {:?} : {:#?} = {:#?})",
+                self.visibility
+                    .as_ref()
+                    .map_or(&TokenType::EOF, |t| &t.kind),
+                self.prot.kind,
+                self.name.kind,
+                type_hint,
+                self.expr
             )
         } else {
             write!(
                 f,
-                "({:?} {:?} := {:#?})",
-                self.prot.kind, self.name.kind, self.expr
+                "({:?} {:?} {:?} := {:#?})",
+                self.visibility
+                    .as_ref()
+                    .map_or(&TokenType::EOF, |t| &t.kind),
+                self.prot.kind,
+                self.name.kind,
+                self.expr
             )
         }
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct Struct {
+    pub name: Token,
+    pub members: Vec<Parameter>,
+}
+
+impl Debug for Struct {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({:?} : struct = {:?})", self.name.kind, self.members)
     }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub enum Type {
     Identifier(Token),
+    Touple(Vec<Box<Type>>),
 }
 
 impl Debug for Type {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Identifier(t) => write!(f, "{:?}", t.kind),
+            Self::Identifier(t) => write!(f, "{:?}", t.kind)?,
+            Self::Touple(t) => {
+                write!(f, "( ")?;
+                for element in t {
+                    write!(f, "{:?} ", element)?;
+                }
+                write!(f, ")")?;
+            }
         }
+        Ok(())
     }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct Function {
+    pub visibility: Option<Token>,
     pub prot: Token,
     pub name: Token,
     pub params: Vec<Parameter>,
     pub return_type: Type,
-    pub body: Block,
+    pub body: Expr,
 }
 
 impl Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "({:?} {:?} : fn({:#?}) -> {:#?} = {:#?})",
-            self.prot.kind, self.name.kind, self.params, self.return_type, self.body
+            "({:?} {:?} {:?} : fn({:#?}) -> {:#?} = {:#?})",
+            self.visibility
+                .as_ref()
+                .map_or(&TokenType::EOF, |t| &t.kind),
+            self.prot.kind,
+            self.name.kind,
+            self.params,
+            self.return_type,
+            self.body
         )
     }
 }
