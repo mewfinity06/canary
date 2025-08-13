@@ -8,7 +8,7 @@ use clap::{Parser, Subcommand};
 #[derive(Parser, Debug)]
 pub struct Cli {
     /// Adds verbose logging
-    #[clap(short='v', long="verbose")]
+    #[clap(short = 'v', long = "verbose")]
     pub verbose: bool,
     #[clap(subcommand)]
     pub command: Command,

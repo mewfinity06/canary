@@ -314,8 +314,7 @@ impl<'a> Lexer<'a> {
                     self.next_char();
                     let mut found_end = false;
                     while let Some(c) = self.next_char() {
-                        if c == '*'
-                        {
+                        if c == '*' {
                             if self.peek() == Some(&'/') {
                                 self.next_char();
                                 found_end = true;

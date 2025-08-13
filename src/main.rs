@@ -16,7 +16,6 @@ fn main() -> Result<()> {
         cli::Command::BuildTests => tester::build_tests(cli.verbose),
         cli::Command::RunTests => tester::run_tests(cli.verbose),
         cli::Command::BuildAndRunTests => tester::build_and_run_tests(cli.verbose),
-        
     };
 
     match res {

@@ -1,1 +1,3 @@
-const main : fn() -> void = {};
+const main : fn() -> void = {
+  printf("Hello, World!");
+};

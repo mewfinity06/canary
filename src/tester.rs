@@ -79,7 +79,9 @@ pub fn build_tests(verbose: bool) -> anyhow::Result<()> {
     let paths_to_process: Vec<PathBuf> = fs::read_dir(test_dir)?
         .filter_map(Result::ok)
         .map(|entry| entry.path())
-        .filter(|path| path.is_file() && *path != expected_path && *path != test_dir.join("readme_test.json"))
+        .filter(|path| {
+            path.is_file() && *path != expected_path && *path != test_dir.join("readme_test.json")
+        })
         .collect();
 
     info!("Building {} tests", paths_to_process.len());
@@ -169,9 +171,7 @@ pub fn run_tests(verbose: bool) -> anyhow::Result<()> {
         if actual_str != test.expected[0] {
             error!(
                 "{}: AST mismatch\n\tExpected: {}\n\t     Got: {}",
-                test.file,
-                test.expected[0],
-                actual_str
+                test.file, test.expected[0], actual_str
             );
             continue 'tests;
         }
@@ -181,7 +181,13 @@ pub fn run_tests(verbose: bool) -> anyhow::Result<()> {
     }
 
     let percent_passed: usize = ((passed as f64) / ((total - skipped) as f64) * 100.0) as usize;
-    info!("{}/{} tests passed ({}%), {} tests skipped", passed, total - skipped, percent_passed, skipped);
+    info!(
+        "{}/{} tests passed ({}%), {} tests skipped",
+        passed,
+        total - skipped,
+        percent_passed,
+        skipped
+    );
 
     Ok(())
 }
